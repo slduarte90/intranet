@@ -30,6 +30,10 @@ const sidebarToggle = document.querySelector("#sidebar-toggle");
 const logoutButton = document.querySelector("#logout-button");
 const toolsGrid = document.querySelector("#tools-grid");
 const toolsEmpty = document.querySelector("#tools-empty");
+const toolFrameView = document.querySelector("#tool-frame-view");
+const toolFrame = document.querySelector("#tool-frame");
+const toolFrameTitle = document.querySelector("#tool-frame-title");
+const toolBackButton = document.querySelector("#tool-back-button");
 const navTools = document.querySelector("#nav-tools");
 const navLearning = document.querySelector("#nav-learning");
 const workspaceEyebrow = document.querySelector("#workspace-eyebrow");
@@ -159,10 +163,11 @@ const defaultTools = [
     id: "analisador-extratos",
     nome: "Analisador de Extratos",
     descricao: "Analise, categorizacao e exportacao de extratos bancarios.",
-    url: "https://extract.zipcontabilidade.com.br",
+    url: "",
+    internalPath: "extract/index.html",
     moduloId: "ferramentas",
     status: USER_STATUS.ACTIVE,
-    abrirNovaAba: true,
+    abrirNovaAba: false,
   },
 ];
 
@@ -237,14 +242,19 @@ function normalizeModule(module) {
 }
 
 function normalizeTool(tool) {
+  const isInternalExtractTool = tool.id === "analisador-extratos";
+
   return {
     id: tool.id || "",
     nome: tool.nome || "",
     descricao: tool.descricao || "",
-    url: tool.url || "",
+    url: isInternalExtractTool ? "" : tool.url || "",
+    internalPath:
+      tool.internalPath ||
+      (isInternalExtractTool ? "extract/index.html" : ""),
     moduloId: tool.moduloId || "",
     status: tool.status || USER_STATUS.ACTIVE,
-    abrirNovaAba: tool.abrirNovaAba !== false,
+    abrirNovaAba: !isInternalExtractTool && Boolean(tool.url) && tool.abrirNovaAba !== false,
   };
 }
 
@@ -597,6 +607,31 @@ function clearToolsGrid() {
   }
 }
 
+function showToolsGrid() {
+  toolFrameView.hidden = true;
+  toolFrame.removeAttribute("src");
+  toolFrameTitle.textContent = "Ferramenta";
+  toolsGrid.hidden = false;
+  toolsEmpty.hidden = toolsGrid.children.length > 0;
+  workspaceEyebrow.textContent = "Ferramentas";
+  workspaceTitle.textContent = "Ferramentas internas";
+}
+
+function openInternalTool(tool) {
+  if (!tool.internalPath) {
+    return;
+  }
+
+  toolsGrid.hidden = true;
+  toolsEmpty.hidden = true;
+  toolFrameTitle.textContent = tool.nome;
+  toolFrame.title = tool.nome;
+  toolFrame.src = tool.internalPath;
+  toolFrameView.hidden = false;
+  workspaceEyebrow.textContent = "Ferramentas";
+  workspaceTitle.textContent = tool.nome;
+}
+
 function createToolCard(tool) {
   const card = document.createElement("article");
   card.className = "tool-card";
@@ -612,12 +647,18 @@ function createToolCard(tool) {
   const description = document.createElement("p");
   description.textContent = tool.descricao;
 
-  const action = document.createElement("a");
+  const action = document.createElement(tool.internalPath ? "button" : "a");
   action.className = "tool-card__action";
-  action.href = tool.url;
-  action.target = "_blank";
-  action.rel = "noopener noreferrer";
   action.textContent = "Abrir ferramenta";
+
+  if (tool.internalPath) {
+    action.type = "button";
+    action.addEventListener("click", () => openInternalTool(tool));
+  } else {
+    action.href = tool.url;
+    action.target = "_blank";
+    action.rel = "noopener noreferrer";
+  }
 
   card.append(icon, title, description, action);
   return card;
@@ -632,6 +673,9 @@ function renderAuthenticatedApp(user) {
     toolsGrid.appendChild(createToolCard(tool));
   });
 
+  toolFrameView.hidden = true;
+  toolFrame.removeAttribute("src");
+  toolsGrid.hidden = false;
   toolsEmpty.hidden = availableTools.length > 0;
   navLearning.hidden = !canAccessLearning(user);
   setWorkspaceSection("tools");
@@ -649,11 +693,12 @@ function setWorkspaceSection(section) {
   navLearning.classList.toggle("is-active", isLearning);
 
   if (isTools) {
-    workspaceEyebrow.textContent = "Ferramentas";
-    workspaceTitle.textContent = "Ferramentas internas";
+    showToolsGrid();
   }
 
   if (isLearning) {
+    toolFrameView.hidden = true;
+    toolFrame.removeAttribute("src");
     workspaceEyebrow.textContent = "Aprendizado";
     workspaceTitle.textContent = "Aprendizado";
   }
@@ -665,6 +710,8 @@ function logout() {
   sessionStorage.removeItem("zipCurrentSession");
   appShell.hidden = true;
   loginPage.classList.remove("is-authenticated");
+  toolFrameView.hidden = true;
+  toolFrame.removeAttribute("src");
   loginForm.reset();
   clearLoginError();
   clearLoginSuccess();
@@ -1062,6 +1109,7 @@ sidebarToggle.addEventListener("click", () => {
 logoutButton.addEventListener("click", logout);
 navTools.addEventListener("click", () => setWorkspaceSection("tools"));
 navLearning.addEventListener("click", () => setWorkspaceSection("learning"));
+toolBackButton.addEventListener("click", showToolsGrid);
 
 usuarioInput.addEventListener("input", () => {
   clearLoginError();
