@@ -63,7 +63,7 @@ const ACTIONS = {
 };
 
 // Preencha com o Client ID web do Google Cloud para ativar o login real.
-const googleClientId = "";
+const googleClientId = "403916379779-9ioro1su7nq24uip6l8fadjv77vomn1b.apps.googleusercontent.com";
 
 const defaultClients = [
   {
@@ -984,7 +984,9 @@ googleFallbackButton.addEventListener("click", () => {
 backToLoginButton.addEventListener("click", goToLogin);
 backToLoginResetButton.addEventListener("click", goToLogin);
 sidebarToggle.addEventListener("click", () => {
-  appShell.classList.toggle("is-collapsed");
+  const isCollapsed = appShell.classList.toggle("is-collapsed");
+  sidebarToggle.setAttribute("aria-expanded", String(!isCollapsed));
+  sidebarToggle.setAttribute("aria-label", isCollapsed ? "Expandir menu" : "Recolher menu");
 });
 logoutButton.addEventListener("click", logout);
 navTools.addEventListener("click", () => setWorkspaceSection("tools"));
