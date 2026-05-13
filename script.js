@@ -35,6 +35,7 @@ const toolFrame = document.querySelector("#tool-frame");
 const toolFrameTitle = document.querySelector("#tool-frame-title");
 const toolBackButton = document.querySelector("#tool-back-button");
 const navTools = document.querySelector("#nav-tools");
+const toolsSubmenu = document.querySelector("#tools-submenu");
 const navLearning = document.querySelector("#nav-learning");
 const workspaceEyebrow = document.querySelector("#workspace-eyebrow");
 const workspaceTitle = document.querySelector("#workspace-title");
@@ -183,6 +184,7 @@ const users = loadUsers();
 let activeResetUser = null;
 let currentSession = null;
 let currentUser = null;
+let toolsMenuExpanded = true;
 
 saveCollection("zipClients", clients);
 saveCollection("zipModules", modules);
@@ -607,12 +609,32 @@ function clearToolsGrid() {
   }
 }
 
+function clearToolsSubmenu() {
+  while (toolsSubmenu.firstChild) {
+    toolsSubmenu.removeChild(toolsSubmenu.firstChild);
+  }
+}
+
+function setToolsMenuExpanded(isExpanded) {
+  toolsMenuExpanded = Boolean(isExpanded);
+  navTools.classList.toggle("is-expanded", toolsMenuExpanded);
+  navTools.setAttribute("aria-expanded", String(toolsMenuExpanded));
+  toolsSubmenu.hidden = !toolsMenuExpanded || toolsSubmenu.children.length === 0;
+}
+
+function setActiveToolMenu(toolId) {
+  toolsSubmenu.querySelectorAll(".sidebar__subitem").forEach((item) => {
+    item.classList.toggle("is-active", item.dataset.toolId === toolId);
+  });
+}
+
 function showToolsGrid() {
   toolFrameView.hidden = true;
   toolFrame.removeAttribute("src");
   toolFrameTitle.textContent = "Ferramenta";
   toolsGrid.hidden = false;
   toolsEmpty.hidden = toolsGrid.children.length > 0;
+  setActiveToolMenu("");
   workspaceEyebrow.textContent = "Ferramentas";
   workspaceTitle.textContent = "Ferramentas internas";
 }
@@ -622,6 +644,9 @@ function openInternalTool(tool) {
     return;
   }
 
+  setWorkspaceSection("tools", { preserveToolView: true });
+  setToolsMenuExpanded(true);
+  setActiveToolMenu(tool.id);
   toolsGrid.hidden = true;
   toolsEmpty.hidden = true;
   toolFrameTitle.textContent = tool.nome;
@@ -630,6 +655,34 @@ function openInternalTool(tool) {
   toolFrameView.hidden = false;
   workspaceEyebrow.textContent = "Ferramentas";
   workspaceTitle.textContent = tool.nome;
+}
+
+function openExternalTool(tool) {
+  if (!tool.url) {
+    return;
+  }
+
+  window.open(tool.url, "_blank", "noopener,noreferrer");
+}
+
+function openTool(tool) {
+  if (tool.internalPath) {
+    openInternalTool(tool);
+    return;
+  }
+
+  openExternalTool(tool);
+}
+
+function createToolSubmenuItem(tool) {
+  const item = document.createElement("button");
+  item.className = "sidebar__subitem";
+  item.type = "button";
+  item.dataset.toolId = tool.id;
+  item.textContent = tool.nome;
+  item.addEventListener("click", () => openTool(tool));
+
+  return item;
 }
 
 function createToolCard(tool) {
@@ -653,7 +706,7 @@ function createToolCard(tool) {
 
   if (tool.internalPath) {
     action.type = "button";
-    action.addEventListener("click", () => openInternalTool(tool));
+    action.addEventListener("click", () => openTool(tool));
   } else {
     action.href = tool.url;
     action.target = "_blank";
@@ -669,21 +722,24 @@ function renderAuthenticatedApp(user) {
   const availableTools = getAvailableTools(user);
 
   clearToolsGrid();
+  clearToolsSubmenu();
   availableTools.forEach((tool) => {
     toolsGrid.appendChild(createToolCard(tool));
+    toolsSubmenu.appendChild(createToolSubmenuItem(tool));
   });
 
   toolFrameView.hidden = true;
   toolFrame.removeAttribute("src");
   toolsGrid.hidden = false;
   toolsEmpty.hidden = availableTools.length > 0;
+  setToolsMenuExpanded(availableTools.length > 0);
   navLearning.hidden = !canAccessLearning(user);
   setWorkspaceSection("tools");
   loginPage.classList.add("is-authenticated");
   appShell.hidden = false;
 }
 
-function setWorkspaceSection(section) {
+function setWorkspaceSection(section, options = {}) {
   const isTools = section === "tools";
   const isLearning = section === "learning";
 
@@ -692,11 +748,12 @@ function setWorkspaceSection(section) {
   navTools.classList.toggle("is-active", isTools);
   navLearning.classList.toggle("is-active", isLearning);
 
-  if (isTools) {
+  if (isTools && !options.preserveToolView) {
     showToolsGrid();
   }
 
   if (isLearning) {
+    setActiveToolMenu("");
     toolFrameView.hidden = true;
     toolFrame.removeAttribute("src");
     workspaceEyebrow.textContent = "Aprendizado";
@@ -1107,7 +1164,12 @@ sidebarToggle.addEventListener("click", () => {
   sidebarToggle.setAttribute("aria-label", isCollapsed ? "Expandir menu" : "Recolher menu");
 });
 logoutButton.addEventListener("click", logout);
-navTools.addEventListener("click", () => setWorkspaceSection("tools"));
+navTools.addEventListener("click", () => {
+  const wasToolsActive = navTools.classList.contains("is-active");
+
+  setWorkspaceSection("tools");
+  setToolsMenuExpanded(wasToolsActive ? !toolsMenuExpanded : true);
+});
 navLearning.addEventListener("click", () => setWorkspaceSection("learning"));
 toolBackButton.addEventListener("click", showToolsGrid);
 
