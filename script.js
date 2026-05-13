@@ -441,6 +441,68 @@ function findUserByEmail(email) {
   return users.find((user) => normalizeEmail(user.email) === normalizeEmail(email));
 }
 
+function createUserIdFromEmail(email) {
+  const baseId = normalizeEmail(email).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  let userId = `usr-google-${baseId}`;
+  let suffix = 1;
+
+  while (users.some((user) => user.id === userId)) {
+    suffix += 1;
+    userId = `usr-google-${baseId}-${suffix}`;
+  }
+
+  return userId;
+}
+
+function getGoogleDisplayName(profile) {
+  const displayName =
+    profile.name || `${profile.given_name || ""} ${profile.family_name || ""}`.trim();
+
+  return displayName || normalizeEmail(profile.email).split("@")[0];
+}
+
+function getInternalGoogleDomain() {
+  const zipClient = getClientById("zip");
+
+  return zipClient && zipClient.dominioPermitido
+    ? zipClient.dominioPermitido
+    : "zipcontabilidade.com.br";
+}
+
+function canAutoCreateInternalGoogleUser(profile, hostedDomain) {
+  return (
+    normalizeEmail(profile.email) &&
+    profile.email_verified !== false &&
+    normalizeLogin(hostedDomain) === getInternalGoogleDomain()
+  );
+}
+
+function createInternalGoogleUser(profile, hostedDomain) {
+  const googleEmail = normalizeEmail(profile.email);
+  const login = normalizeLogin(googleEmail.split("@")[0]);
+  const user = normalizeUser({
+    id: createUserIdFromEmail(googleEmail),
+    nomeCompleto: getGoogleDisplayName(profile),
+    email: googleEmail,
+    login,
+    senha: "",
+    tipo: USER_TYPES.INTERNAL,
+    status: USER_STATUS.ACTIVE,
+    clienteId: "zip",
+    clientesPermitidos: ["*"],
+    modulosPermitidos: ["ferramentas", "aprendizado"],
+    perfilId: "colaborador_zip",
+    authMethods: [AUTH_METHODS.GOOGLE],
+    dominioPermitido: normalizeLogin(hostedDomain),
+    googleSub: profile.sub || "",
+    acessos: [],
+  });
+
+  users.push(user);
+  saveUsers();
+  return user;
+}
+
 function getResetTokens() {
   try {
     const resetTokens = JSON.parse(localStorage.getItem("zipResetTokens"));
@@ -745,11 +807,20 @@ function handleGoogleCredentialResponse(response) {
   const profile = decodeJwtPayload(response.credential);
   const googleEmail = profile.email ? normalizeEmail(profile.email) : "";
   const hostedDomain = profile.hd || "";
-  const user = findUserByEmail(googleEmail);
+  let user = findUserByEmail(googleEmail);
+
+  if (!googleEmail || profile.email_verified === false) {
+    showGoogleError("Conta Google sem e-mail verificado.");
+    return;
+  }
 
   if (!user) {
-    showGoogleError("Conta Google nao vinculada a um usuario cadastrado.");
-    return;
+    if (!canAutoCreateInternalGoogleUser(profile, hostedDomain)) {
+      showGoogleError("Use uma conta Google do dominio zipcontabilidade.com.br.");
+      return;
+    }
+
+    user = createInternalGoogleUser(profile, hostedDomain);
   }
 
   if (!canUseGoogle(user, hostedDomain)) {
