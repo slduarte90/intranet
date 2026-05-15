@@ -1,4 +1,4 @@
-const views = document.querySelectorAll(".auth-view");
+﻿const views = document.querySelectorAll(".auth-view");
 const loginPage = document.querySelector(".login-page");
 
 const loginForm = document.querySelector("#login-form");
@@ -118,6 +118,26 @@ const LEARNING_VIEWS = {
   COURSES: "courses",
   TRACKS: "tracks",
   ASSESSMENT: "assessment",
+};
+
+const ROUTES = {
+  LOGIN: "/",
+  HOME: "/home",
+  TOOLS: "/ferramentas",
+  LEARNING: "/aprendizado",
+  LEARNING_COURSES: "/aprendizado/cursos",
+  LEARNING_TRACKS: "/aprendizado/trilhas",
+  LEARNING_ASSESSMENT: "/aprendizado/avaliacoes",
+  LEARNING_REGISTRATION: "/aprendizado/cadastros",
+  LEARNING_CATEGORIES: "/aprendizado/categorias",
+};
+
+const LEARNING_VIEW_ROUTES = {
+  [LEARNING_VIEWS.COURSES]: ROUTES.LEARNING_COURSES,
+  [LEARNING_VIEWS.TRACKS]: ROUTES.LEARNING_TRACKS,
+  [LEARNING_VIEWS.ASSESSMENT]: ROUTES.LEARNING_ASSESSMENT,
+  [LEARNING_VIEWS.REGISTRATION]: ROUTES.LEARNING_REGISTRATION,
+  [LEARNING_VIEWS.CATEGORIES]: ROUTES.LEARNING_CATEGORIES,
 };
 
 // Preencha com o Client ID web do Google Cloud para ativar o login real.
@@ -289,6 +309,74 @@ function uniqueList(values) {
   return [...new Set((values || []).filter(Boolean))];
 }
 
+function normalizeRoutePath(pathname = window.location.pathname) {
+  let path = decodeURI(pathname || ROUTES.LOGIN).replace(/\/index\.html$/i, "");
+
+  if (path.length > 1) {
+    path = path.replace(/\/+$/, "");
+  }
+
+  return path || ROUTES.LOGIN;
+}
+
+function getRouteForPath(pathname = window.location.pathname) {
+  const path = normalizeRoutePath(pathname);
+  const learningRoute = Object.entries(LEARNING_VIEW_ROUTES).find(
+    ([, routePath]) => routePath === path
+  );
+
+  if (path === ROUTES.HOME) {
+    return { section: "home", path: ROUTES.HOME };
+  }
+
+  if (path === ROUTES.TOOLS) {
+    return { section: "tools", path: ROUTES.TOOLS };
+  }
+
+  if (path === ROUTES.LEARNING) {
+    return {
+      section: "learning",
+      learningView: LEARNING_VIEWS.COURSES,
+      path: ROUTES.LEARNING,
+    };
+  }
+
+  if (learningRoute) {
+    return {
+      section: "learning",
+      learningView: learningRoute[0],
+      path,
+    };
+  }
+
+  return { section: "home", path: ROUTES.HOME };
+}
+
+function getRouteForWorkspace(section, options = {}) {
+  if (options.routePath) {
+    return options.routePath;
+  }
+
+  if (section === "tools") {
+    return ROUTES.TOOLS;
+  }
+
+  if (section === "learning") {
+    return LEARNING_VIEW_ROUTES[options.learningView || activeLearningView] || ROUTES.LEARNING;
+  }
+
+  return ROUTES.HOME;
+}
+
+function updateRoute(path, replace = false) {
+  if (window.location.hash || normalizeRoutePath() === path) {
+    return;
+  }
+
+  const method = replace ? "replaceState" : "pushState";
+  window.history[method]({}, "", path);
+}
+
 function normalizeActions(actions) {
   const validActions = Object.values(ACTIONS);
   const normalizedActions = Array.isArray(actions) ? actions : [];
@@ -336,9 +424,7 @@ function normalizeTool(tool) {
     nome: tool.nome || "",
     descricao: tool.descricao || "",
     url: isInternalExtractTool ? "" : tool.url || "",
-    internalPath:
-      tool.internalPath ||
-      (isInternalExtractTool ? "extract/index.html" : ""),
+    internalPath: isInternalExtractTool ? "/extract/index.html" : tool.internalPath || "",
     moduloId: tool.moduloId || "",
     status: tool.status || USER_STATUS.ACTIVE,
     abrirNovaAba: !isInternalExtractTool && Boolean(tool.url) && tool.abrirNovaAba !== false,
@@ -780,6 +866,36 @@ function startSession(user, authMethod) {
   } catch {
     return;
   }
+}
+
+function getStoredSession() {
+  try {
+    return JSON.parse(sessionStorage.getItem("zipCurrentSession"));
+  } catch {
+    return null;
+  }
+}
+
+function getSessionUser(session) {
+  if (!session || !session.userId) {
+    return null;
+  }
+
+  return users.find((user) => user.id === session.userId && isActiveUser(user)) || null;
+}
+
+function restoreStoredSession() {
+  const storedSession = getStoredSession();
+  const user = getSessionUser(storedSession);
+
+  if (!user) {
+    sessionStorage.removeItem("zipCurrentSession");
+    return false;
+  }
+
+  currentSession = storedSession;
+  renderAuthenticatedApp(user, { route: getRouteForPath(), replaceRoute: true });
+  return true;
 }
 
 function clearToolsGrid() {
@@ -1936,9 +2052,13 @@ function saveLearningAssessment(event) {
   renderLearningAssessment();
 }
 
-function renderAuthenticatedApp(user) {
+function renderAuthenticatedApp(user, options = {}) {
   currentUser = user;
   const availableTools = getAvailableTools(user);
+  const requestedRoute = options.route || getRouteForPath();
+  const canOpenRequestedLearning =
+    requestedRoute.section !== "learning" || canAccessLearning(user);
+  const route = canOpenRequestedLearning ? requestedRoute : { section: "home", path: ROUTES.HOME };
 
   clearToolsGrid();
   clearToolsSubmenu();
@@ -1957,9 +2077,12 @@ function renderAuthenticatedApp(user) {
   activeLearningView = LEARNING_VIEWS.COURSES;
   initializeLearningCourseForm();
   renderLearningStats();
-  setWorkspaceSection("home");
   loginPage.classList.add("is-authenticated");
   appShell.hidden = false;
+  setWorkspaceSection(route.section, {
+    learningView: route.learningView,
+    replaceRoute: options.replaceRoute || !canOpenRequestedLearning,
+  });
 }
 
 function setWorkspaceSection(section, options = {}) {
@@ -1981,7 +2104,7 @@ function setWorkspaceSection(section, options = {}) {
     toolFrameView.hidden = true;
     toolFrame.removeAttribute("src");
     workspaceEyebrow.textContent = "Home";
-    workspaceTitle.textContent = "Últimas atualizações";
+    workspaceTitle.textContent = "\u00daltimas atualiza\u00e7\u00f5es";
   }
 
   if (isTools) {
@@ -2000,6 +2123,10 @@ function setWorkspaceSection(section, options = {}) {
     toolFrame.removeAttribute("src");
     setLearningView(options.learningView || activeLearningView);
   }
+
+  if (!options.skipRouteUpdate) {
+    updateRoute(getRouteForWorkspace(section, options), Boolean(options.replaceRoute));
+  }
 }
 
 function logout() {
@@ -2015,6 +2142,7 @@ function logout() {
   clearLoginSuccess();
   clearGoogleError();
   showView(loginForm);
+  window.history.replaceState({}, "", ROUTES.LOGIN);
   window.location.hash = "";
 }
 
@@ -2297,6 +2425,41 @@ function syncViewFromHash() {
   showView(loginForm);
 }
 
+function hasAuthHashRoute() {
+  return (
+    window.location.hash === "#recuperar-senha" ||
+    window.location.hash.startsWith("#redefinir-senha")
+  );
+}
+
+function bootstrapApp() {
+  if (hasAuthHashRoute()) {
+    syncViewFromHash();
+    return;
+  }
+
+  if (restoreStoredSession()) {
+    return;
+  }
+
+  syncViewFromHash();
+}
+
+function syncWorkspaceFromRoute() {
+  if (!currentUser) {
+    bootstrapApp();
+    return;
+  }
+
+  const route = getRouteForPath();
+  const canOpenRequestedLearning = route.section !== "learning" || canAccessLearning(currentUser);
+
+  setWorkspaceSection(canOpenRequestedLearning ? route.section : "home", {
+    learningView: route.learningView,
+    replaceRoute: !canOpenRequestedLearning,
+  });
+}
+
 loginForm.addEventListener("submit", (event) => {
   event.preventDefault();
 
@@ -2415,7 +2578,10 @@ navHome.addEventListener("click", () => setWorkspaceSection("home"));
 navLearning.addEventListener("click", () => {
   const wasLearningActive = navLearning.classList.contains("is-active");
 
-  setWorkspaceSection("learning", { learningView: LEARNING_VIEWS.COURSES });
+  setWorkspaceSection("learning", {
+    learningView: LEARNING_VIEWS.COURSES,
+    routePath: ROUTES.LEARNING,
+  });
   setLearningMenuExpanded(wasLearningActive ? !learningMenuExpanded : true);
 });
 learningSubmenuItems.forEach((item) => {
@@ -2563,11 +2729,12 @@ emailInput.addEventListener("input", clearForgotState);
 newPasswordInput.addEventListener("input", clearResetState);
 confirmPasswordInput.addEventListener("input", clearResetState);
 
-syncViewFromHash();
+bootstrapApp();
 
 window.handleGoogleCredentialResponse = handleGoogleCredentialResponse;
 window.addEventListener("load", initializeGoogleLogin);
 window.addEventListener("hashchange", syncViewFromHash);
+window.addEventListener("popstate", syncWorkspaceFromRoute);
 
 window.zipAuthModel = {
   clients,
