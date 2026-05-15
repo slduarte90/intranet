@@ -216,9 +216,17 @@
           </div>
 
           <nav class="sidebar__nav">
+            <button class="sidebar__item is-active" id="nav-home" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M3 10.5 12 3l9 7.5" />
+                <path d="M5 10v10h14V10" />
+                <path d="M9 20v-6h6v6" />
+              </svg>
+              <span>Home</span>
+            </button>
             <div class="sidebar__group">
               <button
-                class="sidebar__item sidebar__item--parent is-active is-expanded"
+                class="sidebar__item sidebar__item--parent is-expanded"
                 id="nav-tools"
                 type="button"
                 aria-expanded="true"
@@ -239,24 +247,100 @@
                 aria-label="Ferramentas disponiveis"
               ></div>
             </div>
-            <button class="sidebar__item" id="nav-learning" type="button">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M4 19.5V5.8A2.8 2.8 0 0 1 6.8 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5" />
-                <path d="M8 7h8M8 11h6" />
-              </svg>
-              <span>Aprendizado</span>
-            </button>
+            <div class="sidebar__group" id="learning-nav-group">
+              <button
+                class="sidebar__item sidebar__item--parent"
+                id="nav-learning"
+                type="button"
+                aria-expanded="false"
+                aria-controls="learning-submenu"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 19.5V5.8A2.8 2.8 0 0 1 6.8 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5" />
+                  <path d="M8 7h8M8 11h6" />
+                </svg>
+                <span>Aprendizado</span>
+                <svg class="sidebar__chevron" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
+              <div
+                class="sidebar__submenu"
+                id="learning-submenu"
+                role="group"
+                aria-label="&Aacute;reas de aprendizado"
+                hidden
+              >
+                <button class="sidebar__subitem" type="button" data-learning-view="courses">
+                  Cursos
+                </button>
+                <button class="sidebar__subitem" type="button" data-learning-view="tracks">
+                  Trilhas
+                </button>
+                <button class="sidebar__subitem" type="button" data-learning-view="assessment">
+                  Avalia&ccedil;&otilde;es
+                </button>
+                <button class="sidebar__subitem" type="button" data-learning-view="course-registration">
+                  Cadastros
+                </button>
+                <button class="sidebar__subitem" type="button" data-learning-view="categories">
+                  Categorias
+                </button>
+              </div>
+            </div>
           </nav>
         </aside>
 
         <section class="workspace" aria-labelledby="workspace-title">
           <header class="workspace__header">
             <div>
-              <p class="workspace__eyebrow" id="workspace-eyebrow">Ferramentas</p>
-              <h1 id="workspace-title">Ferramentas internas</h1>
+              <p class="workspace__eyebrow" id="workspace-eyebrow">Home</p>
+              <h1 id="workspace-title">Últimas atualizações</h1>
             </div>
             <button class="logout-button" id="logout-button" type="button">Sair</button>
           </header>
+
+          <section class="workspace-section" id="home-section">
+            <section class="home-panel" aria-labelledby="home-updates-title">
+              <div class="home-panel__header">
+                <div>
+                  <p class="workspace__eyebrow">Sistema</p>
+                  <h2 id="home-updates-title">Últimas atualizações</h2>
+                </div>
+              </div>
+
+              <ol class="home-updates">
+                <li>
+                  <time datetime="2026-05-15">15/05/2026</time>
+                  <div>
+                    <strong>Home adicionada à intranet</strong>
+                    <p>Tela inicial criada para concentrar comunicados e novidades do sistema.</p>
+                  </div>
+                </li>
+                <li>
+                  <time datetime="2026-05-15">15/05/2026</time>
+                  <div>
+                    <strong>Aprendizado ganhou cadastro de categorias</strong>
+                    <p>Categorias agora possuem submenu próprio e alimentam o cadastro de cursos.</p>
+                  </div>
+                </li>
+                <li>
+                  <time datetime="2026-05-15">15/05/2026</time>
+                  <div>
+                    <strong>Cursos com módulos, vídeos e anexos</strong>
+                    <p>Cadastro de cursos passou a aceitar módulos, vídeos do Vimeo e documentos por vídeo.</p>
+                  </div>
+                </li>
+                <li>
+                  <time datetime="2026-05-15">15/05/2026</time>
+                  <div>
+                    <strong>Busca e filtros em Aprendizado</strong>
+                    <p>Cursos e trilhas agora contam com busca e filtro por departamento.</p>
+                  </div>
+                </li>
+              </ol>
+            </section>
+          </section>
 
           <section class="workspace-section" id="tools-section">
             <div class="tools-grid" id="tools-grid"></div>
@@ -281,10 +365,285 @@
           </section>
 
           <section class="workspace-section" id="learning-section" hidden>
-            <div class="learning-panel">
-              <h2>Aprendizado</h2>
-              <p>Este espaco esta reservado para conteudos internos de treinamento.</p>
-            </div>
+            <section
+              class="learning-view"
+              id="learning-course-registration-view"
+              data-learning-view="course-registration"
+            >
+              <div class="learning-layout learning-layout--form">
+                <form class="learning-panel learning-form" id="learning-course-form" action="#" method="post">
+                  <div class="learning-panel__header">
+                    <div>
+                      <p class="learning-panel__eyebrow">Cadastro</p>
+                      <h2>Novo curso</h2>
+                    </div>
+                    <span class="learning-badge">Rascunho local</span>
+                  </div>
+
+                  <div class="learning-form__grid learning-form__grid--course-head">
+                    <label class="field learning-field" for="course-title">
+                      <span>T&iacute;tulo do Curso</span>
+                      <input id="course-title" name="course-title" type="text" required />
+                    </label>
+
+                    <label class="field learning-field" for="course-category">
+                      <span>Categoria</span>
+                      <select id="course-category" name="course-category" required></select>
+                    </label>
+
+                    <label class="field learning-field" for="course-department">
+                      <span>Departamento</span>
+                      <input
+                        id="course-department"
+                        name="course-department"
+                        type="text"
+                        list="course-department-options"
+                      />
+                      <datalist id="course-department-options">
+                        <option value="Contabilidade"></option>
+                        <option value="Fiscal"></option>
+                        <option value="Departamento Pessoal"></option>
+                        <option value="Tecnologia"></option>
+                        <option value="Comercial"></option>
+                      </datalist>
+                    </label>
+
+                    <label class="field learning-field" for="course-total-duration">
+                      <span>Dura&ccedil;&atilde;o Total</span>
+                      <input
+                        id="course-total-duration"
+                        name="course-total-duration"
+                        type="text"
+                        value="0 min"
+                        readonly
+                      />
+                    </label>
+                  </div>
+
+                  <div class="learning-modules-header">
+                    <div>
+                      <h3>M&oacute;dulos</h3>
+                    </div>
+                    <button class="learning-secondary-action" id="learning-add-module" type="button">
+                      Adicionar m&oacute;dulo
+                    </button>
+                  </div>
+
+                  <div class="learning-module-list" id="learning-course-modules-list"></div>
+
+                  <div class="learning-form__actions">
+                    <button class="learning-primary-action" type="submit">Salvar curso</button>
+                    <button class="learning-secondary-action" id="learning-course-reset" type="reset">
+                      Limpar
+                    </button>
+                  </div>
+
+                  <p class="learning-form__status" id="learning-course-status" role="status" hidden></p>
+                </form>
+
+                <aside class="learning-panel learning-side-panel" aria-label="Resumo do cadastro">
+                  <div class="learning-stat">
+                    <span>Cursos publicados</span>
+                    <strong id="learning-total-courses">0</strong>
+                  </div>
+                  <div class="learning-stat">
+                    <span>Documentos anexados</span>
+                    <strong id="learning-total-pdfs">0</strong>
+                  </div>
+                  <div class="learning-stat">
+                    <span>Avalia&ccedil;&otilde;es registradas</span>
+                    <strong id="learning-total-assessments">0</strong>
+                  </div>
+                </aside>
+              </div>
+            </section>
+
+            <section
+              class="learning-view"
+              id="learning-categories-view"
+              data-learning-view="categories"
+              hidden
+            >
+              <section
+                class="learning-panel learning-category-manager learning-category-manager--standalone"
+                aria-labelledby="learning-category-title"
+              >
+                <div class="learning-panel__header">
+                  <div>
+                    <p class="learning-panel__eyebrow">Cadastro</p>
+                    <h2 id="learning-category-title">Categorias</h2>
+                  </div>
+                  <span class="learning-badge">Lista controlada</span>
+                </div>
+
+                <label class="learning-search learning-category-search" for="learning-category-search">
+                  <span class="sr-only">Buscar categoria</span>
+                  <input id="learning-category-search" type="search" placeholder="Buscar categoria" />
+                </label>
+
+                <form class="learning-category-form" id="learning-category-form" action="#" method="post">
+                  <label class="sr-only" for="learning-category-name">Nome da categoria</label>
+                  <input
+                    id="learning-category-name"
+                    name="learning-category-name"
+                    type="text"
+                    placeholder="Nova categoria"
+                    required
+                  />
+                  <button class="learning-secondary-action" type="submit">Adicionar</button>
+                </form>
+
+                <div class="learning-category-list" id="learning-category-list"></div>
+                <p class="empty-state" id="learning-category-empty" hidden>
+                  Nenhuma categoria cadastrada.
+                </p>
+                <p class="learning-form__status" id="learning-category-status" role="status" hidden></p>
+              </section>
+            </section>
+
+            <section
+              class="learning-view"
+              id="learning-courses-view"
+              data-learning-view="courses"
+              hidden
+            >
+              <div class="learning-panel">
+                <div class="learning-panel__header">
+                  <div>
+                    <p class="learning-panel__eyebrow">Biblioteca</p>
+                    <h2>Cursos</h2>
+                  </div>
+                  <div class="learning-filter-bar">
+                    <label class="learning-search" for="learning-course-search">
+                      <span class="sr-only">Buscar curso</span>
+                      <input id="learning-course-search" type="search" placeholder="Buscar curso" />
+                    </label>
+                    <label class="learning-filter" for="learning-course-department-filter">
+                      <span class="sr-only">Filtrar cursos por departamento</span>
+                      <select id="learning-course-department-filter"></select>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="learning-course-grid" id="learning-courses-grid"></div>
+                <p class="empty-state" id="learning-courses-empty" hidden>
+                  Nenhum curso cadastrado.
+                </p>
+              </div>
+
+              <section class="learning-panel learning-course-player" id="learning-course-player" hidden>
+                <div class="learning-panel__header">
+                  <div>
+                    <p class="learning-panel__eyebrow">Curso aberto</p>
+                    <h2 id="learning-player-title">Curso</h2>
+                  </div>
+                  <button class="learning-secondary-action" id="learning-player-close" type="button">
+                    Fechar
+                  </button>
+                </div>
+                <div class="learning-player-frame" id="learning-player-frame"></div>
+                <div class="learning-attachments" id="learning-player-attachments"></div>
+              </section>
+            </section>
+
+            <section
+              class="learning-view"
+              id="learning-tracks-view"
+              data-learning-view="tracks"
+              hidden
+            >
+              <div class="learning-panel">
+                <div class="learning-panel__header">
+                  <div>
+                    <p class="learning-panel__eyebrow">Sequ&ecirc;ncias</p>
+                    <h2>Trilhas</h2>
+                  </div>
+                  <div class="learning-filter-bar">
+                    <label class="learning-search" for="learning-track-search">
+                      <span class="sr-only">Buscar trilha</span>
+                      <input id="learning-track-search" type="search" placeholder="Buscar trilha" />
+                    </label>
+                    <label class="learning-filter" for="learning-track-department-filter">
+                      <span class="sr-only">Filtrar trilhas por departamento</span>
+                      <select id="learning-track-department-filter"></select>
+                    </label>
+                  </div>
+                </div>
+                <div class="learning-track-list" id="learning-track-list"></div>
+                <p class="empty-state" id="learning-tracks-empty" hidden>
+                  Nenhuma trilha dispon&iacute;vel.
+                </p>
+              </div>
+            </section>
+
+            <section
+              class="learning-view"
+              id="learning-assessment-view"
+              data-learning-view="assessment"
+              hidden
+            >
+              <div class="learning-layout learning-layout--form">
+                <form class="learning-panel learning-form" id="learning-assessment-form" action="#" method="post">
+                  <div class="learning-panel__header">
+                    <div>
+                      <p class="learning-panel__eyebrow">Usu&aacute;rio</p>
+                      <h2>Avalia&ccedil;&otilde;es</h2>
+                    </div>
+                    <span class="learning-badge" id="learning-assessment-user">Usu&aacute;rio</span>
+                  </div>
+
+                  <label class="field learning-field" for="assessment-course">
+                    <span>Curso</span>
+                    <select id="assessment-course" name="assessment-course" required></select>
+                  </label>
+
+                  <div class="learning-form__grid">
+                    <label class="field learning-field" for="assessment-score">
+                      <span>Nota</span>
+                      <input
+                        id="assessment-score"
+                        name="assessment-score"
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="1"
+                        required
+                      />
+                    </label>
+
+                    <label class="field learning-field" for="assessment-status">
+                      <span>Status</span>
+                      <select id="assessment-status" name="assessment-status">
+                        <option value="concluido">Concluido</option>
+                        <option value="em-andamento">Em andamento</option>
+                        <option value="reprovado">Reprovado</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <label class="field learning-field" for="assessment-notes">
+                    <span>Observa&ccedil;&otilde;es</span>
+                    <textarea id="assessment-notes" name="assessment-notes" rows="4"></textarea>
+                  </label>
+
+                  <button class="learning-primary-action" type="submit">Registrar avalia&ccedil;&atilde;o</button>
+                  <p class="learning-form__status" id="learning-assessment-status-message" role="status" hidden></p>
+                </form>
+
+                <aside class="learning-panel learning-side-panel" aria-label="Hist&oacute;rico de avalia&ccedil;&atilde;o">
+                  <div class="learning-panel__header">
+                    <div>
+                      <p class="learning-panel__eyebrow">Hist&oacute;rico</p>
+                      <h2>Resultados</h2>
+                    </div>
+                  </div>
+                  <div class="learning-result-list" id="learning-result-list"></div>
+                  <p class="empty-state" id="learning-results-empty" hidden>
+                    Nenhuma avalia&ccedil;&atilde;o registrada.
+                  </p>
+                </aside>
+              </div>
+            </section>
           </section>
         </section>
       </section>

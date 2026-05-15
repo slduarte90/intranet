@@ -28,6 +28,7 @@ const backToLoginResetButton = document.querySelector("#back-to-login-reset");
 const appShell = document.querySelector("#app-shell");
 const sidebarToggle = document.querySelector("#sidebar-toggle");
 const logoutButton = document.querySelector("#logout-button");
+const navHome = document.querySelector("#nav-home");
 const toolsGrid = document.querySelector("#tools-grid");
 const toolsEmpty = document.querySelector("#tools-empty");
 const toolFrameView = document.querySelector("#tool-frame-view");
@@ -37,10 +38,54 @@ const toolBackButton = document.querySelector("#tool-back-button");
 const navTools = document.querySelector("#nav-tools");
 const toolsSubmenu = document.querySelector("#tools-submenu");
 const navLearning = document.querySelector("#nav-learning");
+const learningNavGroup = document.querySelector("#learning-nav-group");
+const learningSubmenu = document.querySelector("#learning-submenu");
+const learningSubmenuItems = document.querySelectorAll("#learning-submenu [data-learning-view]");
 const workspaceEyebrow = document.querySelector("#workspace-eyebrow");
 const workspaceTitle = document.querySelector("#workspace-title");
+const homeSection = document.querySelector("#home-section");
 const toolsSection = document.querySelector("#tools-section");
 const learningSection = document.querySelector("#learning-section");
+const learningViews = document.querySelectorAll(".learning-view");
+const learningCourseForm = document.querySelector("#learning-course-form");
+const courseTitleInput = document.querySelector("#course-title");
+const courseCategoryInput = document.querySelector("#course-category");
+const courseDepartmentInput = document.querySelector("#course-department");
+const courseTotalDurationInput = document.querySelector("#course-total-duration");
+const learningCourseModulesList = document.querySelector("#learning-course-modules-list");
+const learningAddModuleButton = document.querySelector("#learning-add-module");
+const learningCourseStatus = document.querySelector("#learning-course-status");
+const learningCategoryForm = document.querySelector("#learning-category-form");
+const learningCategoryNameInput = document.querySelector("#learning-category-name");
+const learningCategorySearch = document.querySelector("#learning-category-search");
+const learningCategoryList = document.querySelector("#learning-category-list");
+const learningCategoryEmpty = document.querySelector("#learning-category-empty");
+const learningCategoryStatus = document.querySelector("#learning-category-status");
+const learningTotalCourses = document.querySelector("#learning-total-courses");
+const learningTotalPdfs = document.querySelector("#learning-total-pdfs");
+const learningTotalAssessments = document.querySelector("#learning-total-assessments");
+const learningCourseSearch = document.querySelector("#learning-course-search");
+const learningCourseDepartmentFilter = document.querySelector("#learning-course-department-filter");
+const learningCoursesGrid = document.querySelector("#learning-courses-grid");
+const learningCoursesEmpty = document.querySelector("#learning-courses-empty");
+const learningCoursePlayer = document.querySelector("#learning-course-player");
+const learningPlayerTitle = document.querySelector("#learning-player-title");
+const learningPlayerFrame = document.querySelector("#learning-player-frame");
+const learningPlayerAttachments = document.querySelector("#learning-player-attachments");
+const learningPlayerClose = document.querySelector("#learning-player-close");
+const learningTrackSearch = document.querySelector("#learning-track-search");
+const learningTrackDepartmentFilter = document.querySelector("#learning-track-department-filter");
+const learningTrackList = document.querySelector("#learning-track-list");
+const learningTracksEmpty = document.querySelector("#learning-tracks-empty");
+const learningAssessmentForm = document.querySelector("#learning-assessment-form");
+const learningAssessmentUser = document.querySelector("#learning-assessment-user");
+const assessmentCourseSelect = document.querySelector("#assessment-course");
+const assessmentScoreInput = document.querySelector("#assessment-score");
+const assessmentStatusSelect = document.querySelector("#assessment-status");
+const assessmentNotesInput = document.querySelector("#assessment-notes");
+const learningAssessmentStatusMessage = document.querySelector("#learning-assessment-status-message");
+const learningResultList = document.querySelector("#learning-result-list");
+const learningResultsEmpty = document.querySelector("#learning-results-empty");
 
 const AUTH_METHODS = {
   PASSWORD: "senha",
@@ -65,6 +110,14 @@ const ACTIONS = {
   APPROVE: "aprovar",
   EXPORT: "exportar",
   CONFIGURE: "configurar",
+};
+
+const LEARNING_VIEWS = {
+  REGISTRATION: "course-registration",
+  CATEGORIES: "categories",
+  COURSES: "courses",
+  TRACKS: "tracks",
+  ASSESSMENT: "assessment",
 };
 
 // Preencha com o Client ID web do Google Cloud para ativar o login real.
@@ -172,9 +225,33 @@ const defaultTools = [
   },
 ];
 
+const defaultLearningCourses = [];
+const defaultLearningAssessments = [];
+const defaultLearningCategories = [
+  { id: "cat-onboarding", nome: "Onboarding" },
+  { id: "cat-operacional", nome: "Operacional" },
+  { id: "cat-tecnologia", nome: "Tecnologia" },
+  { id: "cat-compliance", nome: "Compliance" },
+];
+
 const clients = loadCollection("zipClients", defaultClients, normalizeClient);
 const modules = loadCollection("zipModules", defaultModules, normalizeModule);
 const tools = loadCollection("zipTools", defaultTools, normalizeTool);
+const learningCourses = loadCollection(
+  "zipLearningCourses",
+  defaultLearningCourses,
+  normalizeLearningCourse
+);
+const learningAssessments = loadCollection(
+  "zipLearningAssessments",
+  defaultLearningAssessments,
+  normalizeLearningAssessment
+);
+const learningCategories = loadCollection(
+  "zipLearningCategories",
+  defaultLearningCategories,
+  normalizeLearningCategory
+);
 const permissionProfiles = loadCollection(
   "zipPermissionProfiles",
   defaultPermissionProfiles,
@@ -185,10 +262,18 @@ let activeResetUser = null;
 let currentSession = null;
 let currentUser = null;
 let toolsMenuExpanded = true;
+let learningMenuExpanded = false;
+let activeLearningView = LEARNING_VIEWS.COURSES;
+let learningModuleCounter = 0;
+let learningVideoCounter = 0;
 
 saveCollection("zipClients", clients);
 saveCollection("zipModules", modules);
 saveCollection("zipTools", tools);
+saveCollection("zipLearningCourses", learningCourses);
+saveCollection("zipLearningAssessments", learningAssessments);
+syncLearningCategoriesFromCourses();
+saveCollection("zipLearningCategories", learningCategories);
 saveCollection("zipPermissionProfiles", permissionProfiles);
 saveUsers();
 
@@ -257,6 +342,100 @@ function normalizeTool(tool) {
     moduloId: tool.moduloId || "",
     status: tool.status || USER_STATUS.ACTIVE,
     abrirNovaAba: !isInternalExtractTool && Boolean(tool.url) && tool.abrirNovaAba !== false,
+  };
+}
+
+function normalizeLearningCourse(course) {
+  const rawModules = Array.isArray(course.modulos)
+    ? course.modulos
+    : Array.isArray(course.modules)
+      ? course.modules
+      : [];
+  const legacyVideos = course.vimeo || course.vimeoUrl
+    ? [
+        {
+          vimeo: course.vimeo || course.vimeoUrl,
+          duracao: course.duracao || course.duration || "",
+          documentos: normalizeDocumentList(course.pdfs || course.attachments || []),
+        },
+      ]
+    : [];
+  const modulos = rawModules.length > 0
+    ? rawModules.map(normalizeLearningModule)
+    : [
+        normalizeLearningModule({
+          titulo: "M\u00f3dulo principal",
+          videos: legacyVideos,
+        }),
+      ];
+  const duracaoSegundos = getCourseDurationSeconds({ modulos });
+
+  return {
+    id: course.id || createLearningCourseId(course.titulo || course.title || "curso"),
+    titulo: course.titulo || course.title || "",
+    categoria: course.categoria || course.category || "Geral",
+    departamento: course.departamento || course.department || "Geral",
+    resumo: course.resumo || course.summary || "",
+    modulos,
+    duracaoSegundos,
+    duracao: formatDuration(duracaoSegundos),
+    pdfs: getCourseDocuments({ modulos }),
+    status: course.status || USER_STATUS.ACTIVE,
+    criadoEm: course.criadoEm || course.createdAt || new Date().toISOString(),
+  };
+}
+
+function normalizeLearningModule(module) {
+  const videos = Array.isArray(module.videos) && module.videos.length > 0
+    ? module.videos.map(normalizeLearningVideo)
+    : [normalizeLearningVideo({})];
+  const duracaoSegundos = videos.reduce(
+    (total, video) => total + Number(video.duracaoSegundos || 0),
+    0
+  );
+
+  return {
+    id: module.id || `modulo-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+    titulo: module.titulo || module.title || "M\u00f3dulo",
+    videos,
+    duracaoSegundos,
+    duracao: formatDuration(duracaoSegundos),
+  };
+}
+
+function normalizeLearningVideo(video) {
+  const rawDuration = video.duracao || video.duration || video.duracaoManual || "";
+  const duracaoSegundos = Number(video.duracaoSegundos || video.durationSeconds || 0) ||
+    parseDurationToSeconds(rawDuration);
+
+  return {
+    id: video.id || `video-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+    titulo: video.titulo || video.title || "",
+    vimeo: video.vimeo || video.vimeoUrl || "",
+    duracaoSegundos,
+    duracao: rawDuration || (duracaoSegundos ? formatDuration(duracaoSegundos) : ""),
+    documentos: normalizeDocumentList(video.documentos || video.documents || video.pdfs || []),
+  };
+}
+
+function normalizeLearningAssessment(assessment) {
+  return {
+    id: assessment.id || `avaliacao-${Date.now()}`,
+    usuarioId: assessment.usuarioId || assessment.userId || "",
+    cursoId: assessment.cursoId || assessment.courseId || "",
+    nota: Number(assessment.nota || assessment.score || 0),
+    status: assessment.status || "concluido",
+    observacoes: assessment.observacoes || assessment.notes || "",
+    criadoEm: assessment.criadoEm || assessment.createdAt || new Date().toISOString(),
+  };
+}
+
+function normalizeLearningCategory(category) {
+  const name = String(category.nome || category.name || category.categoria || "").trim();
+
+  return {
+    id: category.id || createLearningCategoryId(name || "categoria"),
+    nome: name,
   };
 }
 
@@ -717,6 +896,1046 @@ function createToolCard(tool) {
   return card;
 }
 
+function clearElement(element) {
+  while (element.firstChild) {
+    element.removeChild(element.firstChild);
+  }
+}
+
+function createLearningCourseId(title) {
+  const slug = normalizeLogin(title)
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  return `curso-${slug || "aprendizado"}-${Date.now().toString(36)}`;
+}
+
+function createLearningCategoryId(name) {
+  const slug = normalizeLogin(name)
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  return `cat-${slug || "categoria"}-${Date.now().toString(36)}`;
+}
+
+function normalizePdfList(pdfs) {
+  const source = Array.isArray(pdfs) ? pdfs : String(pdfs || "").split(/\r?\n/);
+
+  return uniqueList(
+    source
+      .map((pdf) => (typeof pdf === "string" ? pdf : pdf.url || pdf.path || ""))
+      .map((pdf) => String(pdf).trim())
+      .filter(Boolean)
+  );
+}
+
+function normalizeDocumentList(documents) {
+  return normalizePdfList(documents);
+}
+
+function parseDurationToSeconds(duration) {
+  const value = String(duration || "").trim().toLowerCase();
+
+  if (!value) {
+    return 0;
+  }
+
+  if (/^\d+$/.test(value)) {
+    return Number(value) * 60;
+  }
+
+  const timeParts = value.split(":").map((part) => Number(part));
+
+  if (timeParts.length > 1 && timeParts.every((part) => Number.isFinite(part))) {
+    return timeParts.reduce((total, part) => total * 60 + part, 0);
+  }
+
+  const hours = Number((value.match(/(\d+(?:[,.]\d+)?)\s*h/) || [])[1]?.replace(",", ".") || 0);
+  const minutes = Number((value.match(/(\d+(?:[,.]\d+)?)\s*(?:m|min|minuto)/) || [])[1]?.replace(",", ".") || 0);
+  const seconds = Number((value.match(/(\d+(?:[,.]\d+)?)\s*(?:s|seg|segundo)/) || [])[1]?.replace(",", ".") || 0);
+
+  return Math.round(hours * 3600 + minutes * 60 + seconds);
+}
+
+function formatDuration(totalSeconds) {
+  const seconds = Math.max(0, Math.round(Number(totalSeconds) || 0));
+
+  if (seconds === 0) {
+    return "0 min";
+  }
+
+  if (seconds < 60) {
+    return "menos de 1 min";
+  }
+
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.round((seconds % 3600) / 60);
+
+  if (hours > 0 && minutes > 0) {
+    return `${hours}h ${String(minutes).padStart(2, "0")}min`;
+  }
+
+  if (hours > 0) {
+    return `${hours}h`;
+  }
+
+  return `${minutes} min`;
+}
+
+function getCourseModules(course) {
+  return Array.isArray(course.modulos) ? course.modulos : [];
+}
+
+function getModuleVideos(module) {
+  return Array.isArray(module.videos) ? module.videos : [];
+}
+
+function getCourseVideos(course) {
+  return getCourseModules(course).flatMap((module) => getModuleVideos(module));
+}
+
+function getCourseDocuments(course) {
+  return uniqueList(
+    getCourseVideos(course).flatMap((video) => normalizeDocumentList(video.documentos || []))
+  );
+}
+
+function getCourseDurationSeconds(course) {
+  return getCourseVideos(course).reduce(
+    (total, video) => total + Number(video.duracaoSegundos || 0),
+    0
+  );
+}
+
+function getLearningCategoryNames() {
+  return uniqueList(
+    learningCategories
+      .map((category) => category.nome)
+      .map((name) => String(name || "").trim())
+      .filter(Boolean)
+  );
+}
+
+function hasLearningCategory(categoryName) {
+  const normalizedName = normalizeLogin(categoryName);
+  return learningCategories.some((category) => normalizeLogin(category.nome) === normalizedName);
+}
+
+function addLearningCategory(categoryName) {
+  const name = String(categoryName || "").trim();
+
+  if (!name) {
+    return null;
+  }
+
+  if (hasLearningCategory(name)) {
+    return null;
+  }
+
+  const category = normalizeLearningCategory({
+    id: createLearningCategoryId(name),
+    nome: name,
+  });
+
+  learningCategories.push(category);
+  learningCategories.sort((first, second) => first.nome.localeCompare(second.nome, "pt-BR"));
+  saveCollection("zipLearningCategories", learningCategories);
+  return category;
+}
+
+function syncLearningCategoriesFromCourses() {
+  learningCourses.forEach((course) => {
+    const category = String(course.categoria || "").trim();
+
+    if (category && !hasLearningCategory(category)) {
+      learningCategories.push(normalizeLearningCategory({
+        id: createLearningCategoryId(category),
+        nome: category,
+      }));
+    }
+  });
+
+  learningCategories.sort((first, second) => first.nome.localeCompare(second.nome, "pt-BR"));
+}
+
+function isLearningCategoryInUse(categoryName) {
+  const normalizedName = normalizeLogin(categoryName);
+  return learningCourses.some((course) => normalizeLogin(course.categoria) === normalizedName);
+}
+
+function removeLearningCategory(categoryId) {
+  const category = learningCategories.find((item) => item.id === categoryId);
+
+  if (!category) {
+    return false;
+  }
+
+  if (isLearningCategoryInUse(category.nome) || learningCategories.length <= 1) {
+    return false;
+  }
+
+  const categoryIndex = learningCategories.findIndex((item) => item.id === categoryId);
+  learningCategories.splice(categoryIndex, 1);
+  saveCollection("zipLearningCategories", learningCategories);
+  return true;
+}
+
+function renderLearningCategoryOptions() {
+  const currentValue = courseCategoryInput.value;
+  const categoryNames = getLearningCategoryNames();
+
+  clearElement(courseCategoryInput);
+
+  categoryNames.forEach((categoryName) => {
+    const option = document.createElement("option");
+    option.value = categoryName;
+    option.textContent = categoryName;
+    courseCategoryInput.appendChild(option);
+  });
+
+  if (categoryNames.includes(currentValue)) {
+    courseCategoryInput.value = currentValue;
+  } else if (categoryNames.length > 0) {
+    courseCategoryInput.value = categoryNames[0];
+  }
+}
+
+function setLearningCategoryStatus(message, isError = false) {
+  learningCategoryStatus.textContent = message;
+  learningCategoryStatus.hidden = !message;
+  learningCategoryStatus.classList.toggle("is-error", isError);
+}
+
+function createLearningCategoryItem(category) {
+  const item = document.createElement("div");
+  item.className = "learning-category-item";
+
+  const name = document.createElement("span");
+  name.textContent = category.nome;
+
+  const removeButton = document.createElement("button");
+  removeButton.className = "learning-danger-action";
+  removeButton.type = "button";
+  removeButton.dataset.categoryId = category.id;
+  removeButton.textContent = "Remover";
+
+  if (isLearningCategoryInUse(category.nome) || learningCategories.length <= 1) {
+    removeButton.disabled = true;
+    removeButton.title = isLearningCategoryInUse(category.nome)
+      ? "Categoria em uso por curso cadastrado"
+      : "Mantenha pelo menos uma categoria";
+  }
+
+  item.append(name, removeButton);
+  return item;
+}
+
+function getFilteredLearningCategories() {
+  const searchTerm = normalizeLogin(learningCategorySearch.value);
+
+  if (!searchTerm) {
+    return [...learningCategories];
+  }
+
+  return learningCategories.filter((category) =>
+    normalizeLogin(category.nome).includes(searchTerm)
+  );
+}
+
+function renderLearningCategories() {
+  renderLearningCategoryOptions();
+  const visibleCategories = getFilteredLearningCategories();
+
+  clearElement(learningCategoryList);
+
+  visibleCategories.forEach((category) => {
+    learningCategoryList.appendChild(createLearningCategoryItem(category));
+  });
+
+  learningCategoryEmpty.hidden = visibleCategories.length > 0;
+}
+
+function getLearningDepartments() {
+  return uniqueList(
+    learningCourses
+      .map((course) => course.departamento || "Geral")
+      .map((department) => String(department).trim())
+      .filter(Boolean)
+  ).sort((first, second) => first.localeCompare(second, "pt-BR"));
+}
+
+function syncLearningDepartmentFilter(selectElement) {
+  const currentValue = selectElement.value;
+  const departments = getLearningDepartments();
+
+  clearElement(selectElement);
+
+  const allOption = document.createElement("option");
+  allOption.value = "";
+  allOption.textContent = "Todos os departamentos";
+  selectElement.appendChild(allOption);
+
+  departments.forEach((department) => {
+    const option = document.createElement("option");
+    option.value = department;
+    option.textContent = department;
+    selectElement.appendChild(option);
+  });
+
+  selectElement.value = departments.includes(currentValue) ? currentValue : "";
+}
+
+function syncLearningDepartmentFilters() {
+  syncLearningDepartmentFilter(learningCourseDepartmentFilter);
+  syncLearningDepartmentFilter(learningTrackDepartmentFilter);
+}
+
+function courseMatchesDepartment(course, department) {
+  return !department || normalizeLogin(course.departamento) === normalizeLogin(department);
+}
+
+function courseMatchesSearch(course, searchTerm) {
+  if (!searchTerm) {
+    return true;
+  }
+
+  const searchableValues = [
+    course.titulo,
+    course.categoria,
+    course.departamento,
+    course.resumo,
+    ...getCourseModules(course).map((module) => module.titulo),
+    ...getCourseVideos(course).flatMap((video) => [
+      video.vimeo,
+      ...normalizeDocumentList(video.documentos || []),
+    ]),
+  ];
+
+  return searchableValues.some((value) => normalizeLogin(value).includes(searchTerm));
+}
+
+function getFilteredCoursesByControls(searchValue, departmentValue) {
+  const searchTerm = normalizeLogin(searchValue);
+
+  return learningCourses.filter(
+    (course) =>
+      courseMatchesDepartment(course, departmentValue) &&
+      courseMatchesSearch(course, searchTerm)
+  );
+}
+
+function getLearningViewTitle(view) {
+  const titles = {
+    [LEARNING_VIEWS.REGISTRATION]: "Cadastros",
+    [LEARNING_VIEWS.CATEGORIES]: "Categorias",
+    [LEARNING_VIEWS.COURSES]: "Cursos",
+    [LEARNING_VIEWS.TRACKS]: "Trilhas",
+    [LEARNING_VIEWS.ASSESSMENT]: "Avalia\u00e7\u00f5es",
+  };
+
+  return titles[view] || "Aprendizado";
+}
+
+function setLearningMenuExpanded(isExpanded) {
+  learningMenuExpanded = Boolean(isExpanded);
+  navLearning.classList.toggle("is-expanded", learningMenuExpanded);
+  navLearning.setAttribute("aria-expanded", String(learningMenuExpanded));
+  learningSubmenu.hidden = !learningMenuExpanded;
+}
+
+function setActiveLearningMenu(view) {
+  learningSubmenuItems.forEach((item) => {
+    item.classList.toggle("is-active", item.dataset.learningView === view);
+  });
+}
+
+function setLearningView(view) {
+  activeLearningView = Object.values(LEARNING_VIEWS).includes(view)
+    ? view
+    : LEARNING_VIEWS.COURSES;
+
+  learningViews.forEach((viewElement) => {
+    viewElement.hidden = viewElement.dataset.learningView !== activeLearningView;
+  });
+
+  setActiveLearningMenu(activeLearningView);
+  workspaceEyebrow.textContent = "Aprendizado";
+  workspaceTitle.textContent = getLearningViewTitle(activeLearningView);
+
+  if (activeLearningView === LEARNING_VIEWS.COURSES) {
+    renderLearningCourses();
+  }
+
+  if (activeLearningView === LEARNING_VIEWS.CATEGORIES) {
+    renderLearningCategories();
+  }
+
+  if (activeLearningView === LEARNING_VIEWS.TRACKS) {
+    renderLearningTracks();
+  }
+
+  if (activeLearningView === LEARNING_VIEWS.ASSESSMENT) {
+    renderLearningAssessment();
+  }
+
+  renderLearningStats();
+}
+
+function getVimeoId(vimeoValue) {
+  const value = String(vimeoValue || "").trim();
+
+  if (/^\d+$/.test(value)) {
+    return value;
+  }
+
+  const match = value.match(/vimeo\.com\/(?:video\/)?(\d+)/i);
+  return match ? match[1] : "";
+}
+
+function getVimeoEmbedUrl(vimeoValue) {
+  const vimeoId = getVimeoId(vimeoValue);
+
+  return vimeoId ? `https://player.vimeo.com/video/${vimeoId}` : "";
+}
+
+function getAttachmentName(pdf, index) {
+  const cleanedPdf = String(pdf || "").split("?")[0].replace(/\/+$/, "");
+  const fallbackName = `PDF ${index + 1}`;
+
+  try {
+    const url = new URL(cleanedPdf, window.location.href);
+    const lastSegment = url.pathname.split("/").filter(Boolean).pop();
+    return lastSegment ? decodeURIComponent(lastSegment) : fallbackName;
+  } catch {
+    const lastSegment = cleanedPdf.split(/[\\/]/).filter(Boolean).pop();
+    return lastSegment || fallbackName;
+  }
+}
+
+function getNextLearningModuleId() {
+  learningModuleCounter += 1;
+  return `module-editor-${learningModuleCounter}`;
+}
+
+function getNextLearningVideoId() {
+  learningVideoCounter += 1;
+  return `video-editor-${learningVideoCounter}`;
+}
+
+function createWrappedInput(labelText, input) {
+  const label = document.createElement("label");
+  label.className = "field learning-field";
+
+  const labelSpan = document.createElement("span");
+  labelSpan.textContent = labelText;
+
+  label.append(labelSpan, input);
+  return label;
+}
+
+function createTextInput(className, value = "") {
+  const input = document.createElement("input");
+  input.className = className;
+  input.type = "text";
+  input.value = value;
+  return input;
+}
+
+function createLearningVideoEditor(video = {}) {
+  const videoElement = document.createElement("article");
+  videoElement.className = "learning-video-editor";
+  videoElement.dataset.videoId = video.id || getNextLearningVideoId();
+
+  const vimeoInput = createTextInput("learning-video-vimeo", video.vimeo || "");
+  vimeoInput.required = true;
+  vimeoInput.inputMode = "url";
+
+  const durationInput = createTextInput(
+    "learning-video-duration",
+    video.duracao || (video.duracaoSegundos ? formatDuration(video.duracaoSegundos) : "")
+  );
+  durationInput.placeholder = "Ex.: 12 min ou 00:12:30";
+
+  if (video.duracaoSegundos) {
+    durationInput.dataset.seconds = String(video.duracaoSegundos);
+  }
+
+  const documentsInput = document.createElement("textarea");
+  documentsInput.className = "learning-video-documents";
+  documentsInput.rows = 2;
+  documentsInput.placeholder = "Um link ou caminho por linha";
+  documentsInput.value = normalizeDocumentList(video.documentos || []).join("\n");
+
+  const grid = document.createElement("div");
+  grid.className = "learning-video-editor__grid";
+  grid.append(
+    createWrappedInput("Link ou ID do Vimeo", vimeoInput),
+    createWrappedInput("Dura\u00e7\u00e3o", durationInput),
+    createWrappedInput("PDF ou documento", documentsInput)
+  );
+
+  const actions = document.createElement("div");
+  actions.className = "learning-video-editor__actions";
+
+  const fetchButton = document.createElement("button");
+  fetchButton.className = "learning-secondary-action";
+  fetchButton.type = "button";
+  fetchButton.dataset.action = "fetch-vimeo-duration";
+  fetchButton.textContent = "Buscar dura\u00e7\u00e3o no Vimeo";
+
+  const removeButton = document.createElement("button");
+  removeButton.className = "learning-danger-action";
+  removeButton.type = "button";
+  removeButton.dataset.action = "remove-video";
+  removeButton.textContent = "Remover v\u00eddeo";
+
+  const status = document.createElement("p");
+  status.className = "learning-video-editor__status";
+  status.hidden = true;
+
+  actions.append(fetchButton, removeButton, status);
+  videoElement.append(grid, actions);
+
+  return videoElement;
+}
+
+function createLearningModuleEditor(module = {}) {
+  const moduleElement = document.createElement("article");
+  moduleElement.className = "learning-module-editor";
+  moduleElement.dataset.moduleId = module.id || getNextLearningModuleId();
+
+  const titleInput = createTextInput("learning-module-title", module.titulo || "");
+  titleInput.required = true;
+  titleInput.placeholder = "Ex.: M\u00f3dulo 1 - Integra\u00e7\u00e3o";
+
+  const durationInput = createTextInput(
+    "learning-module-duration",
+    formatDuration(module.duracaoSegundos)
+  );
+  durationInput.readOnly = true;
+
+  const headerGrid = document.createElement("div");
+  headerGrid.className = "learning-module-editor__grid";
+  headerGrid.append(
+    createWrappedInput("T\u00edtulo do M\u00f3dulo", titleInput),
+    createWrappedInput("Dura\u00e7\u00e3o Total", durationInput)
+  );
+
+  const removeModuleButton = document.createElement("button");
+  removeModuleButton.className = "learning-danger-action";
+  removeModuleButton.type = "button";
+  removeModuleButton.dataset.action = "remove-module";
+  removeModuleButton.textContent = "Remover m\u00f3dulo";
+
+  const header = document.createElement("div");
+  header.className = "learning-module-editor__header";
+  header.append(headerGrid, removeModuleButton);
+
+  const videosList = document.createElement("div");
+  videosList.className = "learning-video-list";
+
+  const videos = Array.isArray(module.videos) && module.videos.length > 0
+    ? module.videos
+    : [normalizeLearningVideo({})];
+  videos.forEach((video) => {
+    videosList.appendChild(createLearningVideoEditor(video));
+  });
+
+  const addVideoButton = document.createElement("button");
+  addVideoButton.className = "learning-secondary-action";
+  addVideoButton.type = "button";
+  addVideoButton.dataset.action = "add-video";
+  addVideoButton.textContent = "Adicionar v\u00eddeo";
+
+  moduleElement.append(header, videosList, addVideoButton);
+  return moduleElement;
+}
+
+function initializeLearningCourseForm() {
+  renderLearningCategories();
+  courseTitleInput.value = "";
+  renderLearningCategoryOptions();
+  courseDepartmentInput.value = "";
+  courseTotalDurationInput.value = "0 min";
+  clearElement(learningCourseModulesList);
+  learningCourseModulesList.appendChild(createLearningModuleEditor({
+    titulo: "M\u00f3dulo 1",
+    videos: [normalizeLearningVideo({})],
+  }));
+  updateLearningDurationTotals();
+}
+
+function updateLearningDurationTotals() {
+  let courseTotalSeconds = 0;
+
+  learningCourseModulesList.querySelectorAll(".learning-module-editor").forEach((moduleElement) => {
+    let moduleTotalSeconds = 0;
+
+    moduleElement.querySelectorAll(".learning-video-duration").forEach((durationInput) => {
+      const parsedSeconds = Number(durationInput.dataset.seconds || 0) ||
+        parseDurationToSeconds(durationInput.value);
+      moduleTotalSeconds += parsedSeconds;
+    });
+
+    const moduleDurationInput = moduleElement.querySelector(".learning-module-duration");
+
+    if (moduleDurationInput) {
+      moduleDurationInput.value = formatDuration(moduleTotalSeconds);
+    }
+
+    courseTotalSeconds += moduleTotalSeconds;
+  });
+
+  courseTotalDurationInput.value = formatDuration(courseTotalSeconds);
+  return courseTotalSeconds;
+}
+
+function extractLearningModulesFromForm() {
+  return Array.from(learningCourseModulesList.querySelectorAll(".learning-module-editor")).map(
+    (moduleElement, moduleIndex) => {
+      const titleInput = moduleElement.querySelector(".learning-module-title");
+      const videos = Array.from(moduleElement.querySelectorAll(".learning-video-editor")).map(
+        (videoElement, videoIndex) => {
+          const vimeoInput = videoElement.querySelector(".learning-video-vimeo");
+          const durationInput = videoElement.querySelector(".learning-video-duration");
+          const documentsInput = videoElement.querySelector(".learning-video-documents");
+          const duracaoSegundos = Number(durationInput.dataset.seconds || 0) ||
+            parseDurationToSeconds(durationInput.value);
+
+          return normalizeLearningVideo({
+            titulo: `V\u00eddeo ${videoIndex + 1}`,
+            vimeo: vimeoInput.value.trim(),
+            duracao: durationInput.value.trim(),
+            duracaoSegundos,
+            documentos: normalizeDocumentList(documentsInput.value),
+          });
+        }
+      );
+
+      return normalizeLearningModule({
+        titulo: titleInput.value.trim() || `M\u00f3dulo ${moduleIndex + 1}`,
+        videos,
+      });
+    }
+  );
+}
+
+function setVideoEditorStatus(videoElement, message, isError = false) {
+  const status = videoElement.querySelector(".learning-video-editor__status");
+
+  if (!status) {
+    return;
+  }
+
+  status.textContent = message;
+  status.hidden = !message;
+  status.classList.toggle("is-error", isError);
+}
+
+async function fetchVimeoDurationForVideo(button) {
+  const videoElement = button.closest(".learning-video-editor");
+  const vimeoInput = videoElement.querySelector(".learning-video-vimeo");
+  const durationInput = videoElement.querySelector(".learning-video-duration");
+  const vimeoId = getVimeoId(vimeoInput.value);
+
+  if (!vimeoId) {
+    setVideoEditorStatus(videoElement, "Informe um link ou ID valido do Vimeo.", true);
+    return;
+  }
+
+  button.disabled = true;
+  setVideoEditorStatus(videoElement, "Buscando dura\u00e7\u00e3o...");
+
+  try {
+    const videoUrl = `https://vimeo.com/${vimeoId}`;
+    const response = await fetch(
+      `https://vimeo.com/api/oembed.json?url=${encodeURIComponent(videoUrl)}`
+    );
+
+    if (!response.ok) {
+      throw new Error("Vimeo indisponivel");
+    }
+
+    const data = await response.json();
+    const durationSeconds = Number(data.duration || 0);
+
+    if (!durationSeconds) {
+      throw new Error("Duracao nao retornada");
+    }
+
+    durationInput.dataset.seconds = String(durationSeconds);
+    durationInput.value = formatDuration(durationSeconds);
+    updateLearningDurationTotals();
+    setVideoEditorStatus(videoElement, `Dura\u00e7\u00e3o atualizada: ${formatDuration(durationSeconds)}.`);
+  } catch {
+    setVideoEditorStatus(videoElement, "Nao foi possivel buscar. Preencha a duracao manualmente.", true);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function renderLearningStats() {
+  const pdfCount = learningCourses.reduce(
+    (total, course) => total + getCourseDocuments(course).length,
+    0
+  );
+
+  learningTotalCourses.textContent = String(learningCourses.length);
+  learningTotalPdfs.textContent = String(pdfCount);
+  learningTotalAssessments.textContent = String(learningAssessments.length);
+}
+
+function createLearningCourseCard(course) {
+  const card = document.createElement("article");
+  card.className = "learning-course-card";
+  const moduleCount = getCourseModules(course).length;
+  const videoCount = getCourseVideos(course).length;
+  const documentCount = getCourseDocuments(course).length;
+
+  const meta = document.createElement("div");
+  meta.className = "learning-course-card__meta";
+
+  const category = document.createElement("span");
+  category.className = "learning-badge";
+  category.textContent = course.categoria || "Geral";
+
+  const department = document.createElement("span");
+  department.className = "learning-badge learning-badge--department";
+  department.textContent = course.departamento || "Geral";
+
+  const duration = document.createElement("span");
+  duration.textContent = course.duracaoSegundos
+    ? formatDuration(course.duracaoSegundos)
+    : "Sem dura\u00e7\u00e3o";
+
+  meta.append(category, department, duration);
+
+  const title = document.createElement("h3");
+  title.textContent = course.titulo;
+
+  const summary = document.createElement("p");
+  summary.textContent = `${moduleCount} m\u00f3dulo${moduleCount === 1 ? "" : "s"} - ${videoCount} v\u00eddeo${videoCount === 1 ? "" : "s"}.`;
+
+  const footer = document.createElement("div");
+  footer.className = "learning-course-card__footer";
+
+  const attachments = document.createElement("span");
+  attachments.textContent = `${documentCount} documento${documentCount === 1 ? "" : "s"}`;
+
+  const action = document.createElement("button");
+  action.className = "learning-secondary-action";
+  action.type = "button";
+  action.textContent = "Abrir curso";
+  action.addEventListener("click", () => openLearningCourse(course));
+
+  footer.append(attachments, action);
+  card.append(meta, title, summary, footer);
+
+  return card;
+}
+
+function getFilteredLearningCourses() {
+  return getFilteredCoursesByControls(
+    learningCourseSearch.value,
+    learningCourseDepartmentFilter.value
+  );
+}
+
+function renderLearningCourses() {
+  syncLearningDepartmentFilters();
+  const visibleCourses = getFilteredLearningCourses();
+
+  clearElement(learningCoursesGrid);
+  visibleCourses.forEach((course) => {
+    learningCoursesGrid.appendChild(createLearningCourseCard(course));
+  });
+
+  learningCoursesEmpty.hidden = visibleCourses.length > 0;
+}
+
+function renderLearningPlayerVideo(video, fallbackTitle) {
+  const embedUrl = getVimeoEmbedUrl(video.vimeo);
+  clearElement(learningPlayerFrame);
+
+  if (embedUrl) {
+    const iframe = document.createElement("iframe");
+    iframe.src = embedUrl;
+    iframe.title = video.titulo || fallbackTitle;
+    iframe.allow = "autoplay; fullscreen; picture-in-picture";
+    iframe.allowFullscreen = true;
+    learningPlayerFrame.appendChild(iframe);
+  } else {
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = "Vimeo inv\u00e1lido para este curso.";
+    learningPlayerFrame.appendChild(empty);
+  }
+}
+
+function createLearningPlayerVideoRow(course, module, video, videoIndex) {
+  const row = document.createElement("div");
+  row.className = "learning-player-video-row";
+
+  const action = document.createElement("button");
+  action.className = "learning-secondary-action";
+  action.type = "button";
+  action.textContent = `V\u00eddeo ${videoIndex + 1}`;
+  action.addEventListener("click", () => renderLearningPlayerVideo(video, course.titulo));
+
+  const details = document.createElement("span");
+  details.textContent = video.duracaoSegundos
+    ? formatDuration(video.duracaoSegundos)
+    : "Sem dura\u00e7\u00e3o";
+
+  row.append(action, details);
+
+  normalizeDocumentList(video.documentos || []).forEach((documentUrl, documentIndex) => {
+    const link = document.createElement("a");
+    link.href = documentUrl;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = getAttachmentName(documentUrl, documentIndex);
+    row.appendChild(link);
+  });
+
+  return row;
+}
+
+function openLearningCourse(course) {
+  const firstVideo = getCourseVideos(course).find((video) => video.vimeo);
+
+  learningPlayerTitle.textContent = course.titulo;
+  clearElement(learningPlayerAttachments);
+
+  if (firstVideo) {
+    renderLearningPlayerVideo(firstVideo, course.titulo);
+  } else {
+    clearElement(learningPlayerFrame);
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = "Nenhum v\u00eddeo cadastrado para este curso.";
+    learningPlayerFrame.appendChild(empty);
+  }
+
+  getCourseModules(course).forEach((module) => {
+    const moduleBlock = document.createElement("article");
+    moduleBlock.className = "learning-player-module";
+
+    const title = document.createElement("h3");
+    title.textContent = `${module.titulo} - ${formatDuration(module.duracaoSegundos)}`;
+    moduleBlock.appendChild(title);
+
+    getModuleVideos(module).forEach((video, videoIndex) => {
+      moduleBlock.appendChild(createLearningPlayerVideoRow(course, module, video, videoIndex));
+    });
+
+    learningPlayerAttachments.appendChild(moduleBlock);
+  });
+
+  learningCoursePlayer.hidden = false;
+}
+
+function closeLearningCourse() {
+  learningCoursePlayer.hidden = true;
+  clearElement(learningPlayerFrame);
+  clearElement(learningPlayerAttachments);
+}
+
+function renderLearningTracks() {
+  syncLearningDepartmentFilters();
+
+  const filteredCourses = getFilteredCoursesByControls(
+    learningTrackSearch.value,
+    learningTrackDepartmentFilter.value
+  );
+  const tracksByCategory = filteredCourses.reduce((tracks, course) => {
+    const category = course.categoria || "Geral";
+    tracks[category] = tracks[category] || [];
+    tracks[category].push(course);
+    return tracks;
+  }, {});
+  const trackNames = Object.keys(tracksByCategory).sort((first, second) =>
+    first.localeCompare(second)
+  );
+
+  clearElement(learningTrackList);
+  trackNames.forEach((trackName) => {
+    const track = document.createElement("article");
+    track.className = "learning-track";
+
+    const title = document.createElement("h3");
+    title.textContent = trackName;
+
+    const list = document.createElement("ol");
+    tracksByCategory[trackName].forEach((course) => {
+      const item = document.createElement("li");
+      const moduleCount = getCourseModules(course).length;
+      item.textContent = `${course.titulo} - ${course.departamento || "Geral"} - ${moduleCount} m\u00f3dulo${moduleCount === 1 ? "" : "s"} - ${formatDuration(course.duracaoSegundos)}`;
+      list.appendChild(item);
+    });
+
+    track.append(title, list);
+    learningTrackList.appendChild(track);
+  });
+
+  learningTracksEmpty.hidden = trackNames.length > 0;
+}
+
+function renderLearningCourseOptions() {
+  clearElement(assessmentCourseSelect);
+
+  if (learningCourses.length === 0) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "Nenhum curso cadastrado";
+    option.disabled = true;
+    option.selected = true;
+    assessmentCourseSelect.appendChild(option);
+    return;
+  }
+
+  learningCourses.forEach((course) => {
+    const option = document.createElement("option");
+    option.value = course.id;
+    option.textContent = course.titulo;
+    assessmentCourseSelect.appendChild(option);
+  });
+}
+
+function getCourseById(courseId) {
+  return learningCourses.find((course) => course.id === courseId);
+}
+
+function getCurrentUserAssessments() {
+  const userId = currentUser ? currentUser.id : "";
+  return learningAssessments.filter((assessment) => assessment.usuarioId === userId);
+}
+
+function createLearningResultItem(assessment) {
+  const course = getCourseById(assessment.cursoId);
+  const item = document.createElement("article");
+  item.className = "learning-result";
+
+  const title = document.createElement("strong");
+  title.textContent = course ? course.titulo : "Curso removido";
+
+  const details = document.createElement("span");
+  const date = new Date(assessment.criadoEm).toLocaleDateString("pt-BR");
+  details.textContent = `${assessment.nota}/100 - ${assessment.status} - ${date}`;
+
+  item.append(title, details);
+
+  if (assessment.observacoes) {
+    const notes = document.createElement("p");
+    notes.textContent = assessment.observacoes;
+    item.appendChild(notes);
+  }
+
+  return item;
+}
+
+function renderLearningResults() {
+  const assessments = getCurrentUserAssessments();
+
+  clearElement(learningResultList);
+  assessments.forEach((assessment) => {
+    learningResultList.appendChild(createLearningResultItem(assessment));
+  });
+
+  learningResultsEmpty.hidden = assessments.length > 0;
+}
+
+function renderLearningAssessment() {
+  learningAssessmentUser.textContent = currentUser
+    ? currentUser.nomeCompleto || currentUser.login || "Usu\u00e1rio"
+    : "Usu\u00e1rio";
+  renderLearningCourseOptions();
+  renderLearningResults();
+}
+
+function saveLearningCategory(event) {
+  event.preventDefault();
+
+  if (!learningCategoryForm.checkValidity()) {
+    learningCategoryForm.reportValidity();
+    return;
+  }
+
+  const category = addLearningCategory(learningCategoryNameInput.value);
+
+  if (!category) {
+    setLearningCategoryStatus("Categoria ja cadastrada.", true);
+    return;
+  }
+
+  learningCategoryForm.reset();
+  renderLearningCategories();
+  courseCategoryInput.value = category.nome;
+  setLearningCategoryStatus("Categoria adicionada.");
+}
+
+function saveLearningCourse(event) {
+  event.preventDefault();
+
+  if (!learningCourseForm.checkValidity()) {
+    learningCourseForm.reportValidity();
+    return;
+  }
+
+  const course = normalizeLearningCourse({
+    id: createLearningCourseId(courseTitleInput.value),
+    titulo: courseTitleInput.value.trim(),
+    categoria: courseCategoryInput.value.trim() || "Geral",
+    departamento: courseDepartmentInput.value.trim() || "Geral",
+    modulos: extractLearningModulesFromForm(),
+    criadoEm: new Date().toISOString(),
+  });
+
+  learningCourses.unshift(course);
+  saveCollection("zipLearningCourses", learningCourses);
+  initializeLearningCourseForm();
+  learningCourseStatus.textContent = "Curso salvo localmente.";
+  learningCourseStatus.hidden = false;
+  renderLearningCategories();
+  renderLearningStats();
+  renderLearningCourses();
+  renderLearningTracks();
+  renderLearningAssessment();
+}
+
+function saveLearningAssessment(event) {
+  event.preventDefault();
+
+  if (learningCourses.length === 0) {
+    learningAssessmentStatusMessage.textContent = "Cadastre um curso antes da avalia\u00e7\u00e3o.";
+    learningAssessmentStatusMessage.hidden = false;
+    return;
+  }
+
+  if (!learningAssessmentForm.checkValidity()) {
+    learningAssessmentForm.reportValidity();
+    return;
+  }
+
+  const assessment = normalizeLearningAssessment({
+    id: `avaliacao-${Date.now().toString(36)}`,
+    usuarioId: currentUser ? currentUser.id : "",
+    cursoId: assessmentCourseSelect.value,
+    nota: assessmentScoreInput.value,
+    status: assessmentStatusSelect.value,
+    observacoes: assessmentNotesInput.value.trim(),
+    criadoEm: new Date().toISOString(),
+  });
+
+  learningAssessments.unshift(assessment);
+  saveCollection("zipLearningAssessments", learningAssessments);
+  learningAssessmentForm.reset();
+  learningAssessmentStatusMessage.textContent = "Avalia\u00e7\u00e3o registrada localmente.";
+  learningAssessmentStatusMessage.hidden = false;
+  renderLearningStats();
+  renderLearningAssessment();
+}
+
 function renderAuthenticatedApp(user) {
   currentUser = user;
   const availableTools = getAvailableTools(user);
@@ -733,31 +1952,53 @@ function renderAuthenticatedApp(user) {
   toolsGrid.hidden = false;
   toolsEmpty.hidden = availableTools.length > 0;
   setToolsMenuExpanded(availableTools.length > 0);
-  navLearning.hidden = !canAccessLearning(user);
-  setWorkspaceSection("tools");
+  learningNavGroup.hidden = !canAccessLearning(user);
+  setLearningMenuExpanded(false);
+  activeLearningView = LEARNING_VIEWS.COURSES;
+  initializeLearningCourseForm();
+  renderLearningStats();
+  setWorkspaceSection("home");
   loginPage.classList.add("is-authenticated");
   appShell.hidden = false;
 }
 
 function setWorkspaceSection(section, options = {}) {
+  const isHome = section === "home";
   const isTools = section === "tools";
   const isLearning = section === "learning";
 
+  homeSection.hidden = !isHome;
   toolsSection.hidden = !isTools;
   learningSection.hidden = !isLearning;
+  navHome.classList.toggle("is-active", isHome);
   navTools.classList.toggle("is-active", isTools);
   navLearning.classList.toggle("is-active", isLearning);
 
-  if (isTools && !options.preserveToolView) {
-    showToolsGrid();
+  if (isHome) {
+    setActiveToolMenu("");
+    setToolsMenuExpanded(false);
+    setLearningMenuExpanded(false);
+    toolFrameView.hidden = true;
+    toolFrame.removeAttribute("src");
+    workspaceEyebrow.textContent = "Home";
+    workspaceTitle.textContent = "Últimas atualizações";
+  }
+
+  if (isTools) {
+    setLearningMenuExpanded(false);
+
+    if (!options.preserveToolView) {
+      showToolsGrid();
+    }
   }
 
   if (isLearning) {
     setActiveToolMenu("");
+    setToolsMenuExpanded(false);
+    setLearningMenuExpanded(true);
     toolFrameView.hidden = true;
     toolFrame.removeAttribute("src");
-    workspaceEyebrow.textContent = "Aprendizado";
-    workspaceTitle.textContent = "Aprendizado";
+    setLearningView(options.learningView || activeLearningView);
   }
 }
 
@@ -1170,8 +2411,122 @@ navTools.addEventListener("click", () => {
   setWorkspaceSection("tools");
   setToolsMenuExpanded(wasToolsActive ? !toolsMenuExpanded : true);
 });
-navLearning.addEventListener("click", () => setWorkspaceSection("learning"));
+navHome.addEventListener("click", () => setWorkspaceSection("home"));
+navLearning.addEventListener("click", () => {
+  const wasLearningActive = navLearning.classList.contains("is-active");
+
+  setWorkspaceSection("learning", { learningView: LEARNING_VIEWS.COURSES });
+  setLearningMenuExpanded(wasLearningActive ? !learningMenuExpanded : true);
+});
+learningSubmenuItems.forEach((item) => {
+  item.addEventListener("click", () => {
+    setWorkspaceSection("learning", { learningView: item.dataset.learningView });
+  });
+});
 toolBackButton.addEventListener("click", showToolsGrid);
+learningCategoryForm.addEventListener("submit", saveLearningCategory);
+learningCategoryNameInput.addEventListener("input", () => {
+  setLearningCategoryStatus("");
+});
+learningCategorySearch.addEventListener("input", renderLearningCategories);
+learningCategoryList.addEventListener("click", (event) => {
+  const removeButton = event.target.closest("[data-category-id]");
+
+  if (!removeButton) {
+    return;
+  }
+
+  const removed = removeLearningCategory(removeButton.dataset.categoryId);
+
+  if (!removed) {
+    setLearningCategoryStatus("Categoria em uso ou unica categoria disponivel.", true);
+    return;
+  }
+
+  renderLearningCategories();
+  setLearningCategoryStatus("Categoria removida.");
+});
+learningAddModuleButton.addEventListener("click", () => {
+  const moduleNumber = learningCourseModulesList.querySelectorAll(".learning-module-editor").length + 1;
+  learningCourseModulesList.appendChild(createLearningModuleEditor({
+    titulo: `M\u00f3dulo ${moduleNumber}`,
+    videos: [normalizeLearningVideo({})],
+  }));
+  updateLearningDurationTotals();
+});
+learningCourseModulesList.addEventListener("click", async (event) => {
+  const actionButton = event.target.closest("[data-action]");
+
+  if (!actionButton) {
+    return;
+  }
+
+  const moduleElement = actionButton.closest(".learning-module-editor");
+  const videoElement = actionButton.closest(".learning-video-editor");
+  const action = actionButton.dataset.action;
+
+  if (action === "remove-module" && moduleElement) {
+    moduleElement.remove();
+
+    if (learningCourseModulesList.children.length === 0) {
+      learningCourseModulesList.appendChild(createLearningModuleEditor({
+        titulo: "M\u00f3dulo 1",
+        videos: [normalizeLearningVideo({})],
+      }));
+    }
+
+    updateLearningDurationTotals();
+    return;
+  }
+
+  if (action === "add-video" && moduleElement) {
+    moduleElement.querySelector(".learning-video-list").appendChild(createLearningVideoEditor({}));
+    updateLearningDurationTotals();
+    return;
+  }
+
+  if (action === "remove-video" && videoElement && moduleElement) {
+    const videoList = moduleElement.querySelector(".learning-video-list");
+    videoElement.remove();
+
+    if (videoList.children.length === 0) {
+      videoList.appendChild(createLearningVideoEditor({}));
+    }
+
+    updateLearningDurationTotals();
+    return;
+  }
+
+  if (action === "fetch-vimeo-duration" && videoElement) {
+    await fetchVimeoDurationForVideo(actionButton);
+  }
+});
+learningCourseModulesList.addEventListener("input", (event) => {
+  if (event.target.classList.contains("learning-video-duration")) {
+    delete event.target.dataset.seconds;
+    updateLearningDurationTotals();
+  }
+
+  if (event.target.classList.contains("learning-video-vimeo")) {
+    const videoElement = event.target.closest(".learning-video-editor");
+    setVideoEditorStatus(videoElement, "");
+  }
+});
+learningCourseForm.addEventListener("submit", saveLearningCourse);
+learningCourseForm.addEventListener("reset", (event) => {
+  event.preventDefault();
+  initializeLearningCourseForm();
+  learningCourseStatus.hidden = true;
+});
+learningCourseSearch.addEventListener("input", renderLearningCourses);
+learningCourseDepartmentFilter.addEventListener("change", renderLearningCourses);
+learningPlayerClose.addEventListener("click", closeLearningCourse);
+learningTrackSearch.addEventListener("input", renderLearningTracks);
+learningTrackDepartmentFilter.addEventListener("change", renderLearningTracks);
+learningAssessmentForm.addEventListener("submit", saveLearningAssessment);
+learningAssessmentForm.addEventListener("input", () => {
+  learningAssessmentStatusMessage.hidden = true;
+});
 
 usuarioInput.addEventListener("input", () => {
   clearLoginError();
@@ -1218,6 +2573,9 @@ window.zipAuthModel = {
   clients,
   modules,
   tools,
+  learningCourses,
+  learningAssessments,
+  learningCategories,
   permissionProfiles,
   users,
   getModuleById,
