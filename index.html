@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=4" />
     <link rel="icon" type="image/png" sizes="512x512" href="/favicon.png?v=4" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=4" />
-    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/styles.css?v=20260518-users-list" />
   </head>
   <body>
     <main class="login-page">
@@ -326,13 +326,6 @@
               </div>
 
               <ol class="home-updates">
-                <li>
-                  <time datetime="2026-05-18">18/05/2026</time>
-                  <div>
-                    <strong>Base central de usu&aacute;rios criada</strong>
-                    <p>Planilha Google central foi criada para registrar logins e permiss&otilde;es por e-mail.</p>
-                  </div>
-                </li>
                 <li>
                   <time datetime="2026-05-18">18/05/2026</time>
                   <div>
@@ -758,7 +751,16 @@
                 <p class="config-panel__note">
                   A base central fica no Google Sheets; enquanto a URL do Apps Script n&atilde;o estiver publicada no c&oacute;digo, use importa&ccedil;&atilde;o/exporta&ccedil;&atilde;o para sincronizar manualmente.
                 </p>
-                <div class="config-user-list" id="config-user-list"></div>
+                <div class="config-user-table">
+                  <div class="config-user-table__head" aria-hidden="true">
+                    <span>Nome do usu&aacute;rio</span>
+                    <span>Email</span>
+                    <span>Fun&ccedil;&atilde;o</span>
+                    <span>Status</span>
+                    <span>A&ccedil;&atilde;o</span>
+                  </div>
+                  <div class="config-user-list" id="config-user-list"></div>
+                </div>
               </section>
 
               <div class="config-modal" id="user-config-modal" hidden>
@@ -871,6 +873,6 @@
       </section>
     </main>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="/script.js?v=20260518-central-users"></script>
+    <script src="/script.js?v=20260518-users-list"></script>
   </body>
 </html>

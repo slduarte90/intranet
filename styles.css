@@ -1624,32 +1624,39 @@ textarea {
   accent-color: var(--accent-deep);
 }
 
+.config-user-table {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.config-user-table__head,
+.config-user-card {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1.2fr) minmax(16rem, 1.4fr) minmax(8rem, 0.7fr) minmax(7rem, 0.55fr) auto;
+  gap: 0.9rem;
+  align-items: center;
+}
+
+.config-user-table__head {
+  min-height: 2.4rem;
+  border-bottom: 1px solid var(--border);
+  padding: 0 1rem 0.45rem;
+  color: var(--accent-deep);
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
 .config-user-list {
   display: grid;
-  gap: 0.8rem;
+  gap: 0.55rem;
 }
 
 .config-user-card {
-  display: block;
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 0.95rem 1rem;
   background: #ffffff;
-}
-
-.config-user-card__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.config-user-card__identity {
-  display: grid;
-  grid-template-columns: minmax(11rem, 1.1fr) minmax(16rem, 1.3fr) minmax(9rem, 0.7fr) minmax(8rem, 0.7fr);
-  gap: 0.75rem;
-  align-items: center;
-  min-width: 0;
 }
 
 .config-user-card strong {
@@ -1663,6 +1670,19 @@ textarea {
   color: var(--muted);
   font-size: 0.86rem;
   font-weight: 800;
+}
+
+.config-user-status {
+  width: fit-content;
+  border-radius: 999px;
+  padding: 0.3rem 0.65rem;
+  background: rgba(52, 168, 83, 0.12);
+  color: #1f704a;
+}
+
+.config-user-status.is-inactive {
+  background: rgba(216, 74, 74, 0.09);
+  color: #a23b3b;
 }
 
 .config-permission-chips {
@@ -1841,8 +1861,7 @@ body.is-modal-open {
     grid-template-columns: 1fr;
   }
 
-  .config-panel__header,
-  .config-user-card__header {
+  .config-panel__header {
     align-items: stretch;
     flex-direction: column;
   }
@@ -1853,7 +1872,11 @@ body.is-modal-open {
     width: 100%;
   }
 
-  .config-user-card__identity {
+  .config-user-table__head {
+    display: none;
+  }
+
+  .config-user-card {
     grid-template-columns: 1fr;
   }
 

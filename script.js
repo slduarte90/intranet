@@ -2822,6 +2822,10 @@ function getUserTypeLabel(type) {
   return normalizeUserType(type) === USER_TYPES.ADMIN ? "Administrador" : "Colaborador";
 }
 
+function getUserStatusLabel(status) {
+  return status === USER_STATUS.INACTIVE ? "Inativo" : "Ativo";
+}
+
 function createUserIdFromLogin(login) {
   const baseId = normalizeLogin(login).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   let userId = `usr-${baseId || Date.now().toString(36)}`;
@@ -2990,24 +2994,20 @@ function createUserConfigCard(user) {
   const card = document.createElement("article");
   card.className = "config-user-card";
 
-  const header = document.createElement("div");
-  header.className = "config-user-card__header";
-
-  const identity = document.createElement("div");
-  identity.className = "config-user-card__identity";
   const name = document.createElement("strong");
+  name.className = "config-user-card__name";
   name.textContent = user.nomeCompleto || user.login;
-  const details = document.createElement("span");
-  details.textContent = `${user.email || "sem e-mail"} - ${user.login || "sem login"}`;
-  const type = document.createElement("span");
-  type.textContent = `${getUserTypeLabel(user.tipo)} - ${user.status}`;
 
-  const accessCount = getUserPermissionModules(user).length;
-  const access = document.createElement("span");
-  access.textContent = accessCount > 0
-    ? `${accessCount} acesso${accessCount === 1 ? "" : "s"} configurado${accessCount === 1 ? "" : "s"}`
-    : "Sem acessos configurados";
-  identity.append(name, details, type, access);
+  const email = document.createElement("span");
+  email.textContent = user.email || "sem e-mail";
+
+  const type = document.createElement("span");
+  type.textContent = getUserTypeLabel(user.tipo);
+
+  const status = document.createElement("span");
+  status.className = "config-user-status";
+  status.classList.toggle("is-inactive", user.status === USER_STATUS.INACTIVE);
+  status.textContent = getUserStatusLabel(user.status);
 
   const editButton = document.createElement("button");
   editButton.className = "learning-secondary-action";
@@ -3015,8 +3015,7 @@ function createUserConfigCard(user) {
   editButton.dataset.userId = user.id;
   editButton.textContent = "Editar";
 
-  header.append(identity, editButton);
-  card.append(header);
+  card.append(name, email, type, status, editButton);
   return card;
 }
 
