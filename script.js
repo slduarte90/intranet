@@ -226,6 +226,9 @@ const DEFAULT_LEARNING_DEPARTMENTS = [
 
 const HOME_UPDATES_PER_PAGE = 5;
 const ADMIN_EMAILS = ["sidney.duarte@zipcontabilidade.com.br"];
+const CENTRAL_USERS_SPREADSHEET_URL =
+  "https://docs.google.com/spreadsheets/d/1GFOBNEJa7gHAPkgpdWQ7Xs3p6U2-w8A0ClNSMqlNSKs/edit";
+const CENTRAL_USERS_API_URL = "";
 
 // Preencha com o Client ID web do Google Cloud para ativar o login real.
 const googleClientId = "403916379779-9ioro1su7nq24uip6l8fadjv77vomn1b.apps.googleusercontent.com";
@@ -862,6 +865,179 @@ function loadUsers() {
 
 function saveUsers() {
   saveCollection("zipUsers", users);
+}
+
+function isCentralUsersApiConfigured() {
+  return Boolean(CENTRAL_USERS_API_URL.trim());
+}
+
+async function callCentralUsersApi(action, payload = {}) {
+  if (!isCentralUsersApiConfigured()) {
+    return null;
+  }
+
+  const response = await fetch(CENTRAL_USERS_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "text/plain;charset=utf-8",
+    },
+    body: JSON.stringify({
+      action,
+      ...payload,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Central de usuarios indisponivel");
+  }
+
+  return response.json();
+}
+
+function accessFromPermissionString(permissions) {
+  const value = String(permissions || "").trim();
+
+  if (!value) {
+    return [];
+  }
+
+  if (value === "*") {
+    return getAdminAccess();
+  }
+
+  return value
+    .split(",")
+    .map((permission) => permission.trim())
+    .filter(Boolean)
+    .map((moduleId) => ({
+      clienteId: "*",
+      moduloId: moduleId,
+      acoes: [ACTIONS.VIEW],
+    }));
+}
+
+function permissionStringFromUser(user) {
+  const access = getUserAccess(user);
+
+  if (access.some((item) => item.moduloId === "*")) {
+    return "*";
+  }
+
+  return access.map((item) => item.moduloId).filter(Boolean).join(",");
+}
+
+function normalizeCentralUserRecord(record) {
+  const email = normalizeEmail(record.email);
+  const login = normalizeLogin(record.login || (email ? email.split("@")[0] : ""));
+
+  return normalizeUser({
+    id: record.id || createUserIdFromEmail(email || login),
+    nomeCompleto: record.nome || record.nomeCompleto || record.name || login,
+    email,
+    login,
+    senha: "",
+    tipo: record.tipo || USER_TYPES.COLLABORATOR,
+    status: record.status || USER_STATUS.ACTIVE,
+    clienteId: "zip",
+    clientesPermitidos: ["*"],
+    modulosPermitidos: String(record.permissoes || "").trim() === "*"
+      ? ["*"]
+      : String(record.permissoes || "").split(",").map((item) => item.trim()).filter(Boolean),
+    perfilId: record.tipo === USER_TYPES.ADMIN || record.permissoes === "*" ? "admin_zip" : "colaborador_zip",
+    authMethods: [AUTH_METHODS.GOOGLE],
+    dominioPermitido: "zipcontabilidade.com.br",
+    googleSub: record.googleSub || "",
+    acessos: accessFromPermissionString(record.permissoes),
+  });
+}
+
+function upsertCentralUser(record) {
+  const centralUser = normalizeCentralUserRecord(record);
+  const existingIndex = users.findIndex((user) => {
+    const sameEmail = centralUser.email && normalizeEmail(user.email) === centralUser.email;
+    const sameLogin = centralUser.login && normalizeLogin(user.login) === normalizeLogin(centralUser.login);
+    return user.id === centralUser.id || sameEmail || sameLogin;
+  });
+
+  if (existingIndex >= 0) {
+    users[existingIndex] = normalizeUser({
+      ...users[existingIndex],
+      ...centralUser,
+      senha: users[existingIndex].senha || centralUser.senha,
+      authMethods: uniqueList([...(users[existingIndex].authMethods || []), ...centralUser.authMethods]),
+    });
+    return users[existingIndex];
+  }
+
+  users.push(centralUser);
+  return centralUser;
+}
+
+async function syncCentralLogin(user, authMethod) {
+  if (!isCentralUsersApiConfigured()) {
+    return user;
+  }
+
+  try {
+    const result = await callCentralUsersApi("registerLogin", {
+      usuario: {
+        email: user.email,
+        nome: user.nomeCompleto || user.login,
+        login: user.login,
+        tipo: user.tipo,
+        status: user.status,
+        permissoes: permissionStringFromUser(user),
+        googleSub: user.googleSub || "",
+      },
+      origem: authMethod,
+      userAgent: window.navigator.userAgent,
+    });
+
+    if (result && result.usuario) {
+      const syncedUser = upsertCentralUser(result.usuario);
+      saveUsers();
+      return syncedUser;
+    }
+  } catch {
+    return user;
+  }
+
+  return user;
+}
+
+async function syncCentralUsersDirectory() {
+  if (!isCentralUsersApiConfigured()) {
+    return;
+  }
+
+  try {
+    const result = await callCentralUsersApi("listUsers");
+    const centralUsers = result && Array.isArray(result.usuarios) ? result.usuarios : [];
+
+    centralUsers.forEach(upsertCentralUser);
+    saveUsers();
+  } catch {
+    return;
+  }
+}
+
+async function saveCentralUser(user) {
+  if (!isCentralUsersApiConfigured()) {
+    return;
+  }
+
+  await callCentralUsersApi("saveUser", {
+    usuario: {
+      email: user.email,
+      nome: user.nomeCompleto || user.login,
+      login: user.login,
+      tipo: user.tipo,
+      status: user.status,
+      permissoes: permissionStringFromUser(user),
+      googleSub: user.googleSub || "",
+      observacoes: user.isTestUser ? "Usuario de teste local" : "",
+    },
+  });
 }
 
 function getClientById(clientId) {
@@ -2743,7 +2919,7 @@ function closeUserConfigModal() {
   document.body.classList.remove("is-modal-open");
 }
 
-function saveUserConfig(event) {
+async function saveUserConfig(event) {
   event.preventDefault();
 
   if (!userConfigForm.checkValidity()) {
@@ -2799,6 +2975,13 @@ function saveUserConfig(event) {
   }
 
   saveUsers();
+  try {
+    await saveCentralUser(user);
+  } catch {
+    setUserConfigStatus("Usuario salvo localmente, mas a central nao respondeu.", true);
+    return;
+  }
+
   renderUsersConfig();
   closeUserConfigModal();
 }
@@ -2928,7 +3111,8 @@ async function importUsersDirectory(file) {
   }
 }
 
-function renderUsersConfig() {
+async function renderUsersConfig() {
+  await syncCentralUsersDirectory();
   clearElement(configUserList);
 
   getConfigUsers()
@@ -3115,10 +3299,11 @@ function showLoginError() {
   errorMessage.hidden = false;
 }
 
-function showLoginSuccess(user, authMethod) {
+async function showLoginSuccess(user, authMethod) {
   if (user && authMethod) {
-    startSession(user, authMethod);
-    renderAuthenticatedApp(user);
+    const syncedUser = await syncCentralLogin(user, authMethod);
+    startSession(syncedUser, authMethod);
+    renderAuthenticatedApp(syncedUser);
     return;
   }
 
