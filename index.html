@@ -293,32 +293,16 @@
           <div class="sidebar__bottom">
             <div class="sidebar__group" id="config-nav-group">
               <button
-                class="sidebar__item sidebar__item--parent"
+                class="sidebar__item"
                 id="nav-config"
                 type="button"
-                aria-expanded="false"
-                aria-controls="config-submenu"
               >
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
                   <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.05.05a2 2 0 0 1-2.83 2.83l-.05-.05A1.7 1.7 0 0 0 15 19.38a1.7 1.7 0 0 0-1 .92V20a2 2 0 0 1-4 0v-.08a1.7 1.7 0 0 0-1-.92 1.7 1.7 0 0 0-1.88.34l-.05.05a2 2 0 0 1-2.83-2.83l.05-.05A1.7 1.7 0 0 0 4.62 15a1.7 1.7 0 0 0-.92-1H3.6a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 .92-1 1.7 1.7 0 0 0-.34-1.88l-.05-.05a2 2 0 0 1 2.83-2.83l.05.05A1.7 1.7 0 0 0 9 4.62a1.7 1.7 0 0 0 1-.92V3.6a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 .92 1.7 1.7 0 0 0 1.88-.34l.05-.05a2 2 0 0 1 2.83 2.83l-.05.05A1.7 1.7 0 0 0 19.38 9c.18.38.5.7.92.92h.1a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-.9 1.08Z" />
                 </svg>
                 <span>Configura&ccedil;&otilde;es</span>
-                <svg class="sidebar__chevron" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="m6 9 6 6 6-6" />
-                </svg>
               </button>
-              <div
-                class="sidebar__submenu"
-                id="config-submenu"
-                role="group"
-                aria-label="Configura&ccedil;&otilde;es"
-                hidden
-              >
-                <button class="sidebar__subitem" type="button" data-config-view="users">
-                  Usu&aacute;rios
-                </button>
-              </div>
             </div>
           </div>
         </aside>
@@ -342,6 +326,13 @@
               </div>
 
               <ol class="home-updates">
+                <li>
+                  <time datetime="2026-05-18">18/05/2026</time>
+                  <div>
+                    <strong>Configura&ccedil;&otilde;es reorganizadas</strong>
+                    <p>Configura&ccedil;&otilde;es agora possui menu superior interno e edi&ccedil;&atilde;o de usu&aacute;rios em modal.</p>
+                  </div>
+                </li>
                 <li>
                   <time datetime="2026-05-18">18/05/2026</time>
                   <div>
@@ -720,12 +711,43 @@
 
           <section class="workspace-section" id="config-section" hidden>
             <section class="config-view" id="config-users-view" data-config-view="users">
-              <div class="config-layout">
-                <form class="config-panel config-form" id="user-config-form" action="#" method="post">
+              <nav class="config-tabs" aria-label="Menu de configura&ccedil;&otilde;es">
+                <button class="config-tab is-active" type="button" data-config-view="users">
+                  Usu&aacute;rios
+                </button>
+              </nav>
+
+              <section class="config-panel" aria-labelledby="user-config-list-title">
+                <div class="config-panel__header">
+                  <div>
+                    <p class="workspace__eyebrow">Acessos</p>
+                    <h2 id="user-config-list-title">Usu&aacute;rios cadastrados</h2>
+                  </div>
+                  <button class="learning-secondary-action" id="user-config-new" type="button">
+                    Novo usu&aacute;rio
+                  </button>
+                </div>
+                <p class="config-panel__note">
+                  Esta lista reflete os usu&aacute;rios registrados neste navegador enquanto o sistema estiver sem banco de dados.
+                </p>
+                <div class="config-user-list" id="config-user-list"></div>
+              </section>
+
+              <div class="config-modal" id="user-config-modal" hidden>
+                <div class="config-modal__backdrop" data-modal-close></div>
+                <form
+                  class="config-panel config-form config-modal__dialog"
+                  id="user-config-form"
+                  action="#"
+                  method="post"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="user-config-modal-title"
+                >
                   <div class="config-panel__header">
                     <div>
                       <p class="workspace__eyebrow">Configura&ccedil;&otilde;es</p>
-                      <h2>Usu&aacute;rios</h2>
+                      <h2 id="user-config-modal-title">Editar usu&aacute;rio</h2>
                     </div>
                     <span class="learning-badge">Permiss&otilde;es locais</span>
                   </div>
@@ -805,22 +827,15 @@
                   <div class="learning-form__actions">
                     <button class="learning-primary-action" type="submit">Salvar usu&aacute;rio</button>
                     <button class="learning-secondary-action" id="user-config-reset" type="button">
-                      Novo usu&aacute;rio
+                      Limpar
+                    </button>
+                    <button class="learning-secondary-action" id="user-config-close" type="button">
+                      Fechar
                     </button>
                   </div>
 
                   <p class="learning-form__status" id="user-config-status-message" role="status" hidden></p>
                 </form>
-
-                <section class="config-panel" aria-labelledby="user-config-list-title">
-                  <div class="config-panel__header">
-                    <div>
-                      <p class="workspace__eyebrow">Acessos</p>
-                      <h2 id="user-config-list-title">Usu&aacute;rios cadastrados</h2>
-                    </div>
-                  </div>
-                  <div class="config-user-list" id="config-user-list"></div>
-                </section>
               </div>
             </section>
           </section>
@@ -828,6 +843,6 @@
       </section>
     </main>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="/script.js?v=20260518-admin-user"></script>
+    <script src="/script.js?v=20260518-config-users-modal"></script>
   </body>
 </html>

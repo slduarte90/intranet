@@ -43,8 +43,7 @@ const learningSubmenu = document.querySelector("#learning-submenu");
 const learningSubmenuItems = document.querySelectorAll("#learning-submenu [data-learning-view]");
 const navConfig = document.querySelector("#nav-config");
 const configNavGroup = document.querySelector("#config-nav-group");
-const configSubmenu = document.querySelector("#config-submenu");
-const configSubmenuItems = document.querySelectorAll("#config-submenu [data-config-view]");
+const configMenuItems = document.querySelectorAll("#config-section [data-config-view]");
 const workspaceEyebrow = document.querySelector("#workspace-eyebrow");
 const workspaceTitle = document.querySelector("#workspace-title");
 const homeSection = document.querySelector("#home-section");
@@ -105,7 +104,11 @@ const userConfigPasswordInput = document.querySelector("#user-config-password");
 const userConfigTypeInput = document.querySelector("#user-config-type");
 const userConfigStatusInput = document.querySelector("#user-config-status");
 const userConfigPermissionInputs = document.querySelectorAll("[data-user-permission]");
+const userConfigModal = document.querySelector("#user-config-modal");
+const userConfigModalTitle = document.querySelector("#user-config-modal-title");
+const userConfigNewButton = document.querySelector("#user-config-new");
 const userConfigResetButton = document.querySelector("#user-config-reset");
+const userConfigCloseButton = document.querySelector("#user-config-close");
 const userConfigStatusMessage = document.querySelector("#user-config-status-message");
 const configUserList = document.querySelector("#config-user-list");
 
@@ -1767,21 +1770,18 @@ function syncLearningMenuAccess(user) {
 }
 
 function setConfigMenuExpanded(isExpanded) {
-  const expanded = Boolean(isExpanded);
-  navConfig.classList.toggle("is-expanded", expanded);
-  navConfig.setAttribute("aria-expanded", String(expanded));
-  configSubmenu.hidden = !expanded;
+  navConfig.classList.toggle("is-expanded", Boolean(isExpanded));
 }
 
 function setActiveConfigMenu(view) {
-  configSubmenuItems.forEach((item) => {
+  configMenuItems.forEach((item) => {
     item.classList.toggle("is-active", item.dataset.configView === view);
   });
 }
 
 function syncConfigMenuAccess(user) {
   configNavGroup.hidden = !canAccessConfig(user);
-  configSubmenuItems.forEach((item) => {
+  configMenuItems.forEach((item) => {
     item.hidden = !canAccessConfigView(user, item.dataset.configView);
   });
 }
@@ -2693,6 +2693,7 @@ function setUserConfigStatus(message, isError = false) {
 function resetUserConfigForm() {
   userConfigForm.reset();
   userConfigIdInput.value = "";
+  userConfigModalTitle.textContent = "Novo usu\u00e1rio";
   userConfigTypeInput.value = USER_TYPES.COLLABORATOR;
   userConfigStatusInput.value = USER_STATUS.ACTIVE;
   userConfigPermissionInputs.forEach((input) => {
@@ -2704,6 +2705,7 @@ function resetUserConfigForm() {
 
 function fillUserConfigForm(user) {
   userConfigIdInput.value = user.id;
+  userConfigModalTitle.textContent = "Editar usu\u00e1rio";
   userConfigNameInput.value = user.nomeCompleto;
   userConfigLoginInput.value = user.login;
   userConfigLoginInput.disabled = Boolean(user.isTestUser);
@@ -2719,6 +2721,21 @@ function fillUserConfigForm(user) {
   });
 
   setUserConfigStatus("");
+}
+
+function openUserConfigModal(user) {
+  if (user) {
+    fillUserConfigForm(user);
+  } else {
+    resetUserConfigForm();
+  }
+
+  userConfigModal.hidden = false;
+  userConfigNameInput.focus();
+}
+
+function closeUserConfigModal() {
+  userConfigModal.hidden = true;
 }
 
 function saveUserConfig(event) {
@@ -2778,8 +2795,7 @@ function saveUserConfig(event) {
 
   saveUsers();
   renderUsersConfig();
-  fillUserConfigForm(user);
-  setUserConfigStatus("Usuario salvo localmente.");
+  closeUserConfigModal();
 }
 
 function createUserConfigCard(user) {
@@ -2793,8 +2809,10 @@ function createUserConfigCard(user) {
   const name = document.createElement("strong");
   name.textContent = user.nomeCompleto || user.login;
   const details = document.createElement("span");
-  details.textContent = `${getUserTypeLabel(user.tipo)} - ${user.status}`;
-  identity.append(name, details);
+  details.textContent = `${user.email || "sem e-mail"} - ${user.login || "sem login"}`;
+  const type = document.createElement("span");
+  type.textContent = `${getUserTypeLabel(user.tipo)} - ${user.status}`;
+  identity.append(name, details, type);
 
   const editButton = document.createElement("button");
   editButton.className = "learning-secondary-action";
@@ -2822,10 +2840,29 @@ function createUserConfigCard(user) {
   return card;
 }
 
+function getConfigUsers() {
+  const usersByIdentity = new Map();
+
+  users.forEach((user) => {
+    const identityKey = normalizeEmail(user.email) || normalizeLogin(user.login) || user.id;
+    const currentUserForIdentity = usersByIdentity.get(identityKey);
+
+    if (
+      !currentUserForIdentity ||
+      (user.googleSub && !currentUserForIdentity.googleSub) ||
+      (isConfiguredAdminEmail(user.email) && currentUserForIdentity.isTestUser)
+    ) {
+      usersByIdentity.set(identityKey, user);
+    }
+  });
+
+  return Array.from(usersByIdentity.values());
+}
+
 function renderUsersConfig() {
   clearElement(configUserList);
 
-  users
+  getConfigUsers()
     .slice()
     .sort((first, second) => (first.nomeCompleto || first.login).localeCompare(second.nomeCompleto || second.login, "pt-BR"))
     .forEach((user) => {
@@ -2950,6 +2987,7 @@ function logout() {
   loginPage.classList.remove("is-authenticated");
   toolFrameView.hidden = true;
   configSection.hidden = true;
+  closeUserConfigModal();
   toolFrame.removeAttribute("src");
   loginForm.reset();
   clearLoginError();
@@ -3421,14 +3459,12 @@ navConfig.addEventListener("click", () => {
     return;
   }
 
-  const wasConfigActive = navConfig.classList.contains("is-active");
   setWorkspaceSection("config", {
     configView: CONFIG_VIEWS.USERS,
     routePath: ROUTES.CONFIG,
   });
-  setConfigMenuExpanded(wasConfigActive ? !configSubmenu.hidden : true);
 });
-configSubmenuItems.forEach((item) => {
+configMenuItems.forEach((item) => {
   item.addEventListener("click", () => {
     if (!canAccessConfigView(currentUser, item.dataset.configView)) {
       return;
@@ -3577,7 +3613,14 @@ learningAssessmentForm.addEventListener("input", () => {
 homeUpdatesPrevButton.addEventListener("click", () => goToHomeUpdatesPage(-1));
 homeUpdatesNextButton.addEventListener("click", () => goToHomeUpdatesPage(1));
 userConfigForm.addEventListener("submit", saveUserConfig);
+userConfigNewButton.addEventListener("click", () => openUserConfigModal());
 userConfigResetButton.addEventListener("click", resetUserConfigForm);
+userConfigCloseButton.addEventListener("click", closeUserConfigModal);
+userConfigModal.addEventListener("click", (event) => {
+  if (event.target.closest("[data-modal-close]")) {
+    closeUserConfigModal();
+  }
+});
 userConfigTypeInput.addEventListener("change", () => {
   if (userConfigTypeInput.value === USER_TYPES.ADMIN) {
     userConfigPermissionInputs.forEach((input) => {
@@ -3595,7 +3638,7 @@ configUserList.addEventListener("click", (event) => {
   const user = users.find((item) => item.id === editButton.dataset.userId);
 
   if (user) {
-    fillUserConfigForm(user);
+    openUserConfigModal(user);
   }
 });
 
