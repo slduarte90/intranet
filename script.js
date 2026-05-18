@@ -124,6 +124,7 @@ const ROUTES = {
   LOGIN: "/",
   HOME: "/home",
   TOOLS: "/ferramentas",
+  TOOL_EXTRACT_ANALYZER: "/ferramentas/analisador-extratos",
   LEARNING: "/aprendizado",
   LEARNING_COURSES: "/aprendizado/cursos",
   LEARNING_TRACKS: "/aprendizado/trilhas",
@@ -138,6 +139,10 @@ const LEARNING_VIEW_ROUTES = {
   [LEARNING_VIEWS.ASSESSMENT]: ROUTES.LEARNING_ASSESSMENT,
   [LEARNING_VIEWS.REGISTRATION]: ROUTES.LEARNING_REGISTRATION,
   [LEARNING_VIEWS.CATEGORIES]: ROUTES.LEARNING_CATEGORIES,
+};
+
+const TOOL_ROUTES = {
+  "analisador-extratos": ROUTES.TOOL_EXTRACT_ANALYZER,
 };
 
 // Preencha com o Client ID web do Google Cloud para ativar o login real.
@@ -321,6 +326,7 @@ function normalizeRoutePath(pathname = window.location.pathname) {
 
 function getRouteForPath(pathname = window.location.pathname) {
   const path = normalizeRoutePath(pathname);
+  const toolRoute = Object.entries(TOOL_ROUTES).find(([, routePath]) => routePath === path);
   const learningRoute = Object.entries(LEARNING_VIEW_ROUTES).find(
     ([, routePath]) => routePath === path
   );
@@ -331,6 +337,10 @@ function getRouteForPath(pathname = window.location.pathname) {
 
   if (path === ROUTES.TOOLS) {
     return { section: "tools", path: ROUTES.TOOLS };
+  }
+
+  if (toolRoute) {
+    return { section: "tools", toolId: toolRoute[0], path };
   }
 
   if (path === ROUTES.LEARNING) {
@@ -358,6 +368,10 @@ function getRouteForWorkspace(section, options = {}) {
   }
 
   if (section === "tools") {
+    if (options.toolId && TOOL_ROUTES[options.toolId]) {
+      return TOOL_ROUTES[options.toolId];
+    }
+
     return ROUTES.TOOLS;
   }
 
@@ -650,6 +664,10 @@ function getModuleById(moduleId) {
   return modules.find((module) => module.id === moduleId || module.chave === moduleId);
 }
 
+function getToolById(toolId) {
+  return tools.find((tool) => tool.id === toolId);
+}
+
 function getUserAccess(user) {
   if (Array.isArray(user.acessos) && user.acessos.length > 0) {
     return user.acessos;
@@ -681,6 +699,23 @@ function canAccessTool(user, tool) {
 
 function getAvailableTools(user) {
   return tools.filter((tool) => canAccessTool(user, tool));
+}
+
+function canAccessRoute(user, route) {
+  if (route.section === "tools" && route.toolId) {
+    const tool = getToolById(route.toolId);
+    return Boolean(tool && canAccessTool(user, tool));
+  }
+
+  if (route.section === "tools") {
+    return getAvailableTools(user).length > 0;
+  }
+
+  if (route.section === "learning") {
+    return canAccessLearning(user);
+  }
+
+  return true;
 }
 
 function canAccessLearning(user) {
@@ -934,12 +969,11 @@ function showToolsGrid() {
   workspaceTitle.textContent = "Ferramentas internas";
 }
 
-function openInternalTool(tool) {
+function showInternalToolFrame(tool) {
   if (!tool.internalPath) {
     return;
   }
 
-  setWorkspaceSection("tools", { preserveToolView: true });
   setToolsMenuExpanded(true);
   setActiveToolMenu(tool.id);
   toolsGrid.hidden = true;
@@ -950,6 +984,14 @@ function openInternalTool(tool) {
   toolFrameView.hidden = false;
   workspaceEyebrow.textContent = "Ferramentas";
   workspaceTitle.textContent = tool.nome;
+}
+
+function openInternalTool(tool) {
+  if (!tool.internalPath || (currentUser && !canAccessTool(currentUser, tool))) {
+    return;
+  }
+
+  setWorkspaceSection("tools", { toolId: tool.id });
 }
 
 function openExternalTool(tool) {
@@ -2056,9 +2098,8 @@ function renderAuthenticatedApp(user, options = {}) {
   currentUser = user;
   const availableTools = getAvailableTools(user);
   const requestedRoute = options.route || getRouteForPath();
-  const canOpenRequestedLearning =
-    requestedRoute.section !== "learning" || canAccessLearning(user);
-  const route = canOpenRequestedLearning ? requestedRoute : { section: "home", path: ROUTES.HOME };
+  const canOpenRequestedRoute = canAccessRoute(user, requestedRoute);
+  const route = canOpenRequestedRoute ? requestedRoute : { section: "home", path: ROUTES.HOME };
 
   clearToolsGrid();
   clearToolsSubmenu();
@@ -2081,7 +2122,9 @@ function renderAuthenticatedApp(user, options = {}) {
   appShell.hidden = false;
   setWorkspaceSection(route.section, {
     learningView: route.learningView,
-    replaceRoute: options.replaceRoute || !canOpenRequestedLearning,
+    toolId: route.toolId,
+    routePath: route.path,
+    replaceRoute: options.replaceRoute || !canOpenRequestedRoute,
   });
 }
 
@@ -2110,7 +2153,15 @@ function setWorkspaceSection(section, options = {}) {
   if (isTools) {
     setLearningMenuExpanded(false);
 
-    if (!options.preserveToolView) {
+    if (options.toolId) {
+      const tool = getAvailableTools(currentUser).find((availableTool) => availableTool.id === options.toolId);
+
+      if (tool && tool.internalPath) {
+        showInternalToolFrame(tool);
+      } else {
+        showToolsGrid();
+      }
+    } else if (!options.preserveToolView) {
       showToolsGrid();
     }
   }
@@ -2452,11 +2503,13 @@ function syncWorkspaceFromRoute() {
   }
 
   const route = getRouteForPath();
-  const canOpenRequestedLearning = route.section !== "learning" || canAccessLearning(currentUser);
+  const canOpenRequestedRoute = canAccessRoute(currentUser, route);
 
-  setWorkspaceSection(canOpenRequestedLearning ? route.section : "home", {
+  setWorkspaceSection(canOpenRequestedRoute ? route.section : "home", {
     learningView: route.learningView,
-    replaceRoute: !canOpenRequestedLearning,
+    toolId: route.toolId,
+    routePath: route.path,
+    replaceRoute: !canOpenRequestedRoute,
   });
 }
 
@@ -2589,7 +2642,7 @@ learningSubmenuItems.forEach((item) => {
     setWorkspaceSection("learning", { learningView: item.dataset.learningView });
   });
 });
-toolBackButton.addEventListener("click", showToolsGrid);
+toolBackButton.addEventListener("click", () => setWorkspaceSection("tools"));
 learningCategoryForm.addEventListener("submit", saveLearningCategory);
 learningCategoryNameInput.addEventListener("input", () => {
   setLearningCategoryStatus("");
