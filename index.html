@@ -329,6 +329,13 @@
                 <li>
                   <time datetime="2026-05-18">18/05/2026</time>
                   <div>
+                    <strong>Lista de usu&aacute;rios simplificada</strong>
+                    <p>Configura&ccedil;&otilde;es ganhou listagem limpa, modal corrigido e importa&ccedil;&atilde;o/exporta&ccedil;&atilde;o de usu&aacute;rios.</p>
+                  </div>
+                </li>
+                <li>
+                  <time datetime="2026-05-18">18/05/2026</time>
+                  <div>
                     <strong>Configura&ccedil;&otilde;es reorganizadas</strong>
                     <p>Configura&ccedil;&otilde;es agora possui menu superior interno e edi&ccedil;&atilde;o de usu&aacute;rios em modal.</p>
                   </div>
@@ -723,12 +730,26 @@
                     <p class="workspace__eyebrow">Acessos</p>
                     <h2 id="user-config-list-title">Usu&aacute;rios cadastrados</h2>
                   </div>
-                  <button class="learning-secondary-action" id="user-config-new" type="button">
-                    Novo usu&aacute;rio
-                  </button>
+                  <div class="config-actions">
+                    <button class="learning-secondary-action" id="user-config-import" type="button">
+                      Importar lista
+                    </button>
+                    <button class="learning-secondary-action" id="user-config-export" type="button">
+                      Exportar lista
+                    </button>
+                    <button class="learning-secondary-action" id="user-config-new" type="button">
+                      Novo usu&aacute;rio
+                    </button>
+                    <input
+                      class="sr-only"
+                      id="user-config-import-file"
+                      type="file"
+                      accept="application/json,.json"
+                    />
+                  </div>
                 </div>
                 <p class="config-panel__note">
-                  Esta lista reflete os usu&aacute;rios registrados neste navegador enquanto o sistema estiver sem banco de dados.
+                  Sem banco de dados ou API central, logins feitos em outras m&aacute;quinas precisam ser sincronizados por importa&ccedil;&atilde;o/exporta&ccedil;&atilde;o da lista.
                 </p>
                 <div class="config-user-list" id="config-user-list"></div>
               </section>
@@ -843,6 +864,6 @@
       </section>
     </main>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="/script.js?v=20260518-config-users-modal"></script>
+    <script src="/script.js?v=20260518-users-directory"></script>
   </body>
 </html>

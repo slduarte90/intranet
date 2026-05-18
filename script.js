@@ -107,6 +107,9 @@ const userConfigPermissionInputs = document.querySelectorAll("[data-user-permiss
 const userConfigModal = document.querySelector("#user-config-modal");
 const userConfigModalTitle = document.querySelector("#user-config-modal-title");
 const userConfigNewButton = document.querySelector("#user-config-new");
+const userConfigImportButton = document.querySelector("#user-config-import");
+const userConfigExportButton = document.querySelector("#user-config-export");
+const userConfigImportFile = document.querySelector("#user-config-import-file");
 const userConfigResetButton = document.querySelector("#user-config-reset");
 const userConfigCloseButton = document.querySelector("#user-config-close");
 const userConfigStatusMessage = document.querySelector("#user-config-status-message");
@@ -2731,11 +2734,13 @@ function openUserConfigModal(user) {
   }
 
   userConfigModal.hidden = false;
+  document.body.classList.add("is-modal-open");
   userConfigNameInput.focus();
 }
 
 function closeUserConfigModal() {
   userConfigModal.hidden = true;
+  document.body.classList.remove("is-modal-open");
 }
 
 function saveUserConfig(event) {
@@ -2806,13 +2811,20 @@ function createUserConfigCard(user) {
   header.className = "config-user-card__header";
 
   const identity = document.createElement("div");
+  identity.className = "config-user-card__identity";
   const name = document.createElement("strong");
   name.textContent = user.nomeCompleto || user.login;
   const details = document.createElement("span");
   details.textContent = `${user.email || "sem e-mail"} - ${user.login || "sem login"}`;
   const type = document.createElement("span");
   type.textContent = `${getUserTypeLabel(user.tipo)} - ${user.status}`;
-  identity.append(name, details, type);
+
+  const accessCount = getUserPermissionModules(user).length;
+  const access = document.createElement("span");
+  access.textContent = accessCount > 0
+    ? `${accessCount} acesso${accessCount === 1 ? "" : "s"} configurado${accessCount === 1 ? "" : "s"}`
+    : "Sem acessos configurados";
+  identity.append(name, details, type, access);
 
   const editButton = document.createElement("button");
   editButton.className = "learning-secondary-action";
@@ -2821,22 +2833,7 @@ function createUserConfigCard(user) {
   editButton.textContent = "Editar";
 
   header.append(identity, editButton);
-
-  const chips = document.createElement("div");
-  chips.className = "config-permission-chips";
-  getUserPermissionModules(user).forEach((moduleId) => {
-    const chip = document.createElement("span");
-    chip.textContent = MODULE_LABELS[moduleId] || moduleId;
-    chips.appendChild(chip);
-  });
-
-  if (chips.children.length === 0) {
-    const chip = document.createElement("span");
-    chip.textContent = "Sem acessos configurados";
-    chips.appendChild(chip);
-  }
-
-  card.append(header, chips);
+  card.append(header);
   return card;
 }
 
@@ -2857,6 +2854,78 @@ function getConfigUsers() {
   });
 
   return Array.from(usersByIdentity.values());
+}
+
+function exportUsersDirectory() {
+  const usersDirectory = getConfigUsers().map((user) => ({
+    ...user,
+    senha: user.senha ? "" : "",
+    googleSub: user.googleSub || "",
+  }));
+  const payload = {
+    exportadoEm: new Date().toISOString(),
+    origem: "Intranet ZIP",
+    usuarios: usersDirectory,
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `usuarios-intranet-${new Date().toISOString().slice(0, 10)}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function mergeImportedUsers(importedUsers) {
+  let mergedCount = 0;
+
+  importedUsers.map(normalizeUser).forEach((importedUser) => {
+    const existingIndex = users.findIndex((user) => {
+      const sameEmail = importedUser.email && normalizeEmail(user.email) === importedUser.email;
+      const sameLogin = importedUser.login && normalizeLogin(user.login) === normalizeLogin(importedUser.login);
+      return user.id === importedUser.id || sameEmail || sameLogin;
+    });
+
+    if (existingIndex >= 0) {
+      users[existingIndex] = {
+        ...users[existingIndex],
+        ...importedUser,
+        senha: users[existingIndex].senha || importedUser.senha,
+      };
+    } else {
+      users.push(importedUser);
+    }
+
+    mergedCount += 1;
+  });
+
+  saveUsers();
+  renderUsersConfig();
+  return mergedCount;
+}
+
+async function importUsersDirectory(file) {
+  if (!file) {
+    return;
+  }
+
+  try {
+    const payload = JSON.parse(await file.text());
+    const importedUsers = Array.isArray(payload) ? payload : payload.usuarios;
+
+    if (!Array.isArray(importedUsers)) {
+      throw new Error("Formato invalido");
+    }
+
+    const mergedCount = mergeImportedUsers(importedUsers);
+    window.alert(`${mergedCount} usuario${mergedCount === 1 ? "" : "s"} sincronizado${mergedCount === 1 ? "" : "s"}.`);
+  } catch {
+    window.alert("Nao foi possivel importar a lista de usuarios. Verifique o arquivo JSON.");
+  } finally {
+    userConfigImportFile.value = "";
+  }
 }
 
 function renderUsersConfig() {
@@ -3614,10 +3683,20 @@ homeUpdatesPrevButton.addEventListener("click", () => goToHomeUpdatesPage(-1));
 homeUpdatesNextButton.addEventListener("click", () => goToHomeUpdatesPage(1));
 userConfigForm.addEventListener("submit", saveUserConfig);
 userConfigNewButton.addEventListener("click", () => openUserConfigModal());
+userConfigExportButton.addEventListener("click", exportUsersDirectory);
+userConfigImportButton.addEventListener("click", () => userConfigImportFile.click());
+userConfigImportFile.addEventListener("change", () => {
+  importUsersDirectory(userConfigImportFile.files[0]);
+});
 userConfigResetButton.addEventListener("click", resetUserConfigForm);
 userConfigCloseButton.addEventListener("click", closeUserConfigModal);
 userConfigModal.addEventListener("click", (event) => {
   if (event.target.closest("[data-modal-close]")) {
+    closeUserConfigModal();
+  }
+});
+window.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !userConfigModal.hidden) {
     closeUserConfigModal();
   }
 });

@@ -1533,16 +1533,20 @@ textarea {
 .config-tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.55rem;
+  gap: 0.5rem;
   margin-bottom: 1rem;
-  border-bottom: 1px solid var(--border);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.35rem;
+  background: rgba(255, 255, 255, 0.86);
+  width: fit-content;
 }
 
 .config-tab {
   min-height: 2.65rem;
   border: 0;
-  border-bottom: 3px solid transparent;
-  padding: 0 0.85rem;
+  border-radius: 6px;
+  padding: 0 1rem;
   background: transparent;
   color: var(--accent-deep);
   cursor: pointer;
@@ -1551,7 +1555,6 @@ textarea {
 
 .config-tab:hover,
 .config-tab.is-active {
-  border-bottom-color: var(--accent);
   background: var(--accent-soft);
 }
 
@@ -1572,6 +1575,13 @@ textarea {
   margin: 0;
   color: var(--muted);
   line-height: 1.5;
+}
+
+.config-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.6rem;
 }
 
 .config-form {
@@ -1620,27 +1630,36 @@ textarea {
 }
 
 .config-user-card {
-  display: grid;
-  gap: 0.7rem;
+  display: block;
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 0.95rem;
+  padding: 0.95rem 1rem;
   background: #ffffff;
 }
 
 .config-user-card__header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
 }
 
+.config-user-card__identity {
+  display: grid;
+  grid-template-columns: minmax(11rem, 1.1fr) minmax(16rem, 1.3fr) minmax(9rem, 0.7fr) minmax(8rem, 0.7fr);
+  gap: 0.75rem;
+  align-items: center;
+  min-width: 0;
+}
+
 .config-user-card strong {
+  overflow-wrap: anywhere;
   color: var(--text);
 }
 
 .config-user-card span {
   display: block;
+  overflow-wrap: anywhere;
   color: var(--muted);
   font-size: 0.86rem;
   font-weight: 800;
@@ -1666,7 +1685,7 @@ textarea {
 .config-modal {
   position: fixed;
   inset: 0;
-  z-index: 20;
+  z-index: 100;
   display: grid;
   place-items: center;
   padding: 1.25rem;
@@ -1684,6 +1703,10 @@ textarea {
   width: min(100%, 58rem);
   max-height: min(90vh, 52rem);
   overflow: auto;
+}
+
+body.is-modal-open {
+  overflow: hidden;
 }
 
 @media (max-width: 760px) {
@@ -1815,6 +1838,22 @@ textarea {
   }
 
   .learning-category-form {
+    grid-template-columns: 1fr;
+  }
+
+  .config-panel__header,
+  .config-user-card__header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .config-actions,
+  .config-tab,
+  .config-tabs {
+    width: 100%;
+  }
+
+  .config-user-card__identity {
     grid-template-columns: 1fr;
   }
 
