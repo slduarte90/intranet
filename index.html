@@ -345,6 +345,13 @@
                 <li>
                   <time datetime="2026-05-18">18/05/2026</time>
                   <div>
+                    <strong>Paginação nas últimas atualizações</strong>
+                    <p>Lista da Home agora exibe 5 atualizações por página.</p>
+                  </div>
+                </li>
+                <li>
+                  <time datetime="2026-05-18">18/05/2026</time>
+                  <div>
                     <strong>Cadastro de cursos padronizado</strong>
                     <p>Menus de categoria e departamento agora usam o mesmo formato de sele&ccedil;&atilde;o.</p>
                   </div>
@@ -399,6 +406,16 @@
                   </div>
                 </li>
               </ol>
+
+              <nav class="home-pagination" aria-label="Paginação das últimas atualizações">
+                <button class="learning-secondary-action" id="home-updates-prev" type="button">
+                  Anterior
+                </button>
+                <span id="home-updates-page-status" aria-live="polite">P&aacute;gina 1 de 1</span>
+                <button class="learning-secondary-action" id="home-updates-next" type="button">
+                  Pr&oacute;xima
+                </button>
+              </nav>
             </section>
           </section>
 
@@ -804,6 +821,6 @@
       </section>
     </main>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="/script.js?v=20260518-course-selects"></script>
+    <script src="/script.js?v=20260518-updates-pagination"></script>
   </body>
 </html>

@@ -48,6 +48,10 @@ const configSubmenuItems = document.querySelectorAll("#config-submenu [data-conf
 const workspaceEyebrow = document.querySelector("#workspace-eyebrow");
 const workspaceTitle = document.querySelector("#workspace-title");
 const homeSection = document.querySelector("#home-section");
+const homeUpdatesList = document.querySelector(".home-updates");
+const homeUpdatesPrevButton = document.querySelector("#home-updates-prev");
+const homeUpdatesNextButton = document.querySelector("#home-updates-next");
+const homeUpdatesPageStatus = document.querySelector("#home-updates-page-status");
 const toolsSection = document.querySelector("#tools-section");
 const learningSection = document.querySelector("#learning-section");
 const configSection = document.querySelector("#config-section");
@@ -213,6 +217,8 @@ const DEFAULT_LEARNING_DEPARTMENTS = [
   "Tecnologia",
   "Comercial",
 ];
+
+const HOME_UPDATES_PER_PAGE = 5;
 
 // Preencha com o Client ID web do Google Cloud para ativar o login real.
 const googleClientId = "403916379779-9ioro1su7nq24uip6l8fadjv77vomn1b.apps.googleusercontent.com";
@@ -384,6 +390,7 @@ let learningMenuExpanded = false;
 let activeLearningView = LEARNING_VIEWS.COURSES;
 let learningModuleCounter = 0;
 let learningVideoCounter = 0;
+let homeUpdatesPage = 1;
 
 saveCollection("zipClients", clients);
 saveCollection("zipModules", modules);
@@ -2465,6 +2472,27 @@ function renderLearningAssessment() {
   renderLearningResults();
 }
 
+function renderHomeUpdates() {
+  const updateItems = Array.from(homeUpdatesList.querySelectorAll("li"));
+  const totalPages = Math.max(1, Math.ceil(updateItems.length / HOME_UPDATES_PER_PAGE));
+
+  homeUpdatesPage = Math.min(Math.max(homeUpdatesPage, 1), totalPages);
+
+  updateItems.forEach((item, index) => {
+    const pageIndex = Math.floor(index / HOME_UPDATES_PER_PAGE) + 1;
+    item.hidden = pageIndex !== homeUpdatesPage;
+  });
+
+  homeUpdatesPrevButton.disabled = homeUpdatesPage <= 1;
+  homeUpdatesNextButton.disabled = homeUpdatesPage >= totalPages;
+  homeUpdatesPageStatus.textContent = `P\u00e1gina ${homeUpdatesPage} de ${totalPages}`;
+}
+
+function goToHomeUpdatesPage(direction) {
+  homeUpdatesPage += direction;
+  renderHomeUpdates();
+}
+
 function saveLearningCategory(event) {
   event.preventDefault();
 
@@ -2812,6 +2840,7 @@ function setWorkspaceSection(section, options = {}) {
     toolFrame.removeAttribute("src");
     workspaceEyebrow.textContent = "Home";
     workspaceTitle.textContent = "\u00daltimas atualiza\u00e7\u00f5es";
+    renderHomeUpdates();
   }
 
   if (isTools) {
@@ -3488,6 +3517,8 @@ learningAssessmentForm.addEventListener("submit", saveLearningAssessment);
 learningAssessmentForm.addEventListener("input", () => {
   learningAssessmentStatusMessage.hidden = true;
 });
+homeUpdatesPrevButton.addEventListener("click", () => goToHomeUpdatesPage(-1));
+homeUpdatesNextButton.addEventListener("click", () => goToHomeUpdatesPage(1));
 userConfigForm.addEventListener("submit", saveUserConfig);
 userConfigResetButton.addEventListener("click", resetUserConfigForm);
 userConfigTypeInput.addEventListener("change", () => {

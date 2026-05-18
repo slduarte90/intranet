@@ -841,6 +841,10 @@ textarea {
   background: #ffffff;
 }
 
+.home-updates li[hidden] {
+  display: none;
+}
+
 .home-updates time {
   color: var(--accent-deep);
   font-size: 0.86rem;
@@ -857,6 +861,20 @@ textarea {
   margin: 0;
   color: var(--muted);
   line-height: 1.5;
+}
+
+.home-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.home-pagination span {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 900;
 }
 
 .sr-only {
@@ -1013,6 +1031,16 @@ textarea {
 .learning-secondary-action:hover {
   border-color: var(--accent);
   background: var(--accent-soft);
+}
+
+.learning-secondary-action:disabled {
+  opacity: 0.52;
+  cursor: not-allowed;
+}
+
+.learning-secondary-action:disabled:hover {
+  border-color: var(--border);
+  background: #ffffff;
 }
 
 .learning-danger-action {
@@ -1691,6 +1719,11 @@ textarea {
 
   .home-updates li {
     grid-template-columns: 1fr;
+  }
+
+  .home-pagination {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .learning-layout--form,
