@@ -525,6 +525,14 @@ textarea {
   padding: 1rem;
 }
 
+.sidebar__bottom {
+  display: grid;
+  gap: 0.4rem;
+  margin-top: auto;
+  padding: 1rem;
+  border-top: 1px solid var(--border);
+}
+
 .sidebar__group {
   display: grid;
   gap: 0.25rem;
@@ -625,6 +633,10 @@ textarea {
 .app-shell.is-collapsed .sidebar__item {
   justify-content: center;
   padding: 0;
+}
+
+.app-shell.is-collapsed .sidebar__bottom {
+  padding: 1rem 0.75rem;
 }
 
 .workspace {
@@ -1099,6 +1111,50 @@ textarea {
   color: #a23b3b;
 }
 
+.learning-document-uploader {
+  display: grid;
+  gap: 0.65rem;
+  align-content: start;
+}
+
+.learning-document-uploader__button {
+  width: fit-content;
+}
+
+.learning-document-uploader__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.learning-document-list {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.learning-document-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 2.35rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.45rem 0.65rem;
+  background: #ffffff;
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.learning-document-item button {
+  min-height: 2rem;
+  padding: 0 0.6rem;
+}
+
 .learning-module-duration,
 #course-total-duration {
   color: var(--accent-deep);
@@ -1429,6 +1485,120 @@ textarea {
   font-weight: 800;
 }
 
+.config-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(18rem, 0.85fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.config-panel {
+  display: grid;
+  gap: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 18px 48px rgba(7, 72, 108, 0.1);
+}
+
+.config-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.config-panel__header h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.35rem;
+}
+
+.config-form {
+  align-content: start;
+}
+
+.config-form__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.config-permissions {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.config-permissions legend {
+  padding: 0 0.35rem;
+  color: var(--accent-deep);
+  font-weight: 900;
+}
+
+.config-permissions label {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 2.1rem;
+  color: var(--text);
+  font-weight: 800;
+}
+
+.config-permissions input {
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: var(--accent-deep);
+}
+
+.config-user-list {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.config-user-card {
+  display: grid;
+  gap: 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.95rem;
+  background: #ffffff;
+}
+
+.config-user-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.config-user-card strong {
+  color: var(--text);
+}
+
+.config-user-card span {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.config-permission-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.config-permission-chips span {
+  border-radius: 999px;
+  padding: 0.25rem 0.55rem;
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+}
+
 @media (max-width: 760px) {
   .login-page {
     grid-template-columns: 1fr;
@@ -1524,8 +1694,10 @@ textarea {
   }
 
   .learning-layout--form,
+  .config-layout,
   .learning-form__grid,
   .learning-form__grid--course-head,
+  .config-form__grid,
   .learning-module-editor__header,
   .learning-module-editor__grid,
   .learning-video-editor__grid {

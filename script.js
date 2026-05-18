@@ -41,11 +41,17 @@ const navLearning = document.querySelector("#nav-learning");
 const learningNavGroup = document.querySelector("#learning-nav-group");
 const learningSubmenu = document.querySelector("#learning-submenu");
 const learningSubmenuItems = document.querySelectorAll("#learning-submenu [data-learning-view]");
+const navConfig = document.querySelector("#nav-config");
+const configNavGroup = document.querySelector("#config-nav-group");
+const configSubmenu = document.querySelector("#config-submenu");
+const configSubmenuItems = document.querySelectorAll("#config-submenu [data-config-view]");
 const workspaceEyebrow = document.querySelector("#workspace-eyebrow");
 const workspaceTitle = document.querySelector("#workspace-title");
 const homeSection = document.querySelector("#home-section");
 const toolsSection = document.querySelector("#tools-section");
 const learningSection = document.querySelector("#learning-section");
+const configSection = document.querySelector("#config-section");
+const configViews = document.querySelectorAll(".config-view");
 const learningViews = document.querySelectorAll(".learning-view");
 const learningCourseForm = document.querySelector("#learning-course-form");
 const courseTitleInput = document.querySelector("#course-title");
@@ -86,6 +92,18 @@ const assessmentNotesInput = document.querySelector("#assessment-notes");
 const learningAssessmentStatusMessage = document.querySelector("#learning-assessment-status-message");
 const learningResultList = document.querySelector("#learning-result-list");
 const learningResultsEmpty = document.querySelector("#learning-results-empty");
+const userConfigForm = document.querySelector("#user-config-form");
+const userConfigIdInput = document.querySelector("#user-config-id");
+const userConfigNameInput = document.querySelector("#user-config-name");
+const userConfigLoginInput = document.querySelector("#user-config-login");
+const userConfigEmailInput = document.querySelector("#user-config-email");
+const userConfigPasswordInput = document.querySelector("#user-config-password");
+const userConfigTypeInput = document.querySelector("#user-config-type");
+const userConfigStatusInput = document.querySelector("#user-config-status");
+const userConfigPermissionInputs = document.querySelectorAll("[data-user-permission]");
+const userConfigResetButton = document.querySelector("#user-config-reset");
+const userConfigStatusMessage = document.querySelector("#user-config-status-message");
+const configUserList = document.querySelector("#config-user-list");
 
 const AUTH_METHODS = {
   PASSWORD: "senha",
@@ -98,8 +116,15 @@ const USER_STATUS = {
 };
 
 const USER_TYPES = {
+  ADMIN: "administrador",
+  COLLABORATOR: "colaborador",
   INTERNAL: "interno",
   CLIENT: "cliente",
+};
+
+const LEGACY_USER_TYPE_MAP = {
+  [USER_TYPES.INTERNAL]: USER_TYPES.COLLABORATOR,
+  [USER_TYPES.CLIENT]: USER_TYPES.COLLABORATOR,
 };
 
 const ACTIONS = {
@@ -125,6 +150,8 @@ const ROUTES = {
   HOME: "/home",
   TOOLS: "/ferramentas",
   TOOL_EXTRACT_ANALYZER: "/ferramentas/analisador-extratos",
+  CONFIG: "/configuracoes",
+  CONFIG_USERS: "/configuracoes/usuarios",
   LEARNING: "/aprendizado",
   LEARNING_COURSES: "/aprendizado/cursos",
   LEARNING_TRACKS: "/aprendizado/trilhas",
@@ -143,6 +170,40 @@ const LEARNING_VIEW_ROUTES = {
 
 const TOOL_ROUTES = {
   "analisador-extratos": ROUTES.TOOL_EXTRACT_ANALYZER,
+};
+
+const CONFIG_VIEWS = {
+  USERS: "users",
+};
+
+const CONFIG_VIEW_ROUTES = {
+  [CONFIG_VIEWS.USERS]: ROUTES.CONFIG_USERS,
+};
+
+const LEARNING_VIEW_MODULES = {
+  [LEARNING_VIEWS.COURSES]: "aprendizado.cursos",
+  [LEARNING_VIEWS.TRACKS]: "aprendizado.trilhas",
+  [LEARNING_VIEWS.ASSESSMENT]: "aprendizado.avaliacoes",
+  [LEARNING_VIEWS.REGISTRATION]: "aprendizado.cadastros",
+  [LEARNING_VIEWS.CATEGORIES]: "aprendizado.categorias",
+};
+
+const LEARNING_MENU_ORDER = [
+  LEARNING_VIEWS.COURSES,
+  LEARNING_VIEWS.TRACKS,
+  LEARNING_VIEWS.ASSESSMENT,
+  LEARNING_VIEWS.REGISTRATION,
+  LEARNING_VIEWS.CATEGORIES,
+];
+
+const MODULE_LABELS = {
+  "ferramentas.analisador-extratos": "Ferramentas - Analisador de Extratos",
+  "aprendizado.cursos": "Aprendizado - Cursos",
+  "aprendizado.trilhas": "Aprendizado - Trilhas",
+  "aprendizado.avaliacoes": "Aprendizado - Avalia\u00e7\u00f5es",
+  "aprendizado.cadastros": "Aprendizado - Cadastros",
+  "aprendizado.categorias": "Aprendizado - Categorias",
+  "configuracoes.usuarios": "Configura\u00e7\u00f5es - Usu\u00e1rios",
 };
 
 // Preencha com o Client ID web do Google Cloud para ativar o login real.
@@ -168,15 +229,29 @@ const defaultClients = [
 ];
 
 const defaultModules = [
+  { id: "home", chave: "home", nome: "Home", status: USER_STATUS.ACTIVE },
   { id: "ferramentas", chave: "ferramentas", nome: "Ferramentas", status: USER_STATUS.ACTIVE },
+  {
+    id: "ferramentas.analisador-extratos",
+    chave: "ferramentas.analisador-extratos",
+    nome: "Analisador de Extratos",
+    status: USER_STATUS.ACTIVE,
+  },
   { id: "aprendizado", chave: "aprendizado", nome: "Aprendizado", status: USER_STATUS.ACTIVE },
+  { id: "aprendizado.cursos", chave: "aprendizado.cursos", nome: "Cursos", status: USER_STATUS.ACTIVE },
+  { id: "aprendizado.trilhas", chave: "aprendizado.trilhas", nome: "Trilhas", status: USER_STATUS.ACTIVE },
+  { id: "aprendizado.avaliacoes", chave: "aprendizado.avaliacoes", nome: "Avalia\u00e7\u00f5es", status: USER_STATUS.ACTIVE },
+  { id: "aprendizado.cadastros", chave: "aprendizado.cadastros", nome: "Cadastros", status: USER_STATUS.ACTIVE },
+  { id: "aprendizado.categorias", chave: "aprendizado.categorias", nome: "Categorias", status: USER_STATUS.ACTIVE },
+  { id: "configuracoes", chave: "configuracoes", nome: "Configura\u00e7\u00f5es", status: USER_STATUS.ACTIVE },
+  { id: "configuracoes.usuarios", chave: "configuracoes.usuarios", nome: "Usu\u00e1rios", status: USER_STATUS.ACTIVE },
 ];
 
 const defaultPermissionProfiles = [
   {
     id: "admin_zip",
     nome: "Administrador ZIP",
-    tipo: USER_TYPES.INTERNAL,
+    tipo: USER_TYPES.ADMIN,
     permissoes: [
       {
         clienteId: "*",
@@ -188,24 +263,34 @@ const defaultPermissionProfiles = [
   {
     id: "colaborador_zip",
     nome: "Colaborador ZIP",
-    tipo: USER_TYPES.INTERNAL,
+    tipo: USER_TYPES.COLLABORATOR,
     permissoes: [
       {
         clienteId: "*",
-        moduloId: "ferramentas",
+        moduloId: "ferramentas.analisador-extratos",
         acoes: [ACTIONS.VIEW],
       },
       {
         clienteId: "*",
-        moduloId: "aprendizado",
+        moduloId: "aprendizado.cursos",
+        acoes: [ACTIONS.VIEW],
+      },
+      {
+        clienteId: "*",
+        moduloId: "aprendizado.trilhas",
+        acoes: [ACTIONS.VIEW],
+      },
+      {
+        clienteId: "*",
+        moduloId: "aprendizado.avaliacoes",
         acoes: [ACTIONS.VIEW],
       },
     ],
   },
   {
     id: "cliente_padrao",
-    nome: "Cliente usuario",
-    tipo: USER_TYPES.CLIENT,
+    nome: "Colaborador padr\u00e3o",
+    tipo: USER_TYPES.COLLABORATOR,
     permissoes: [],
   },
 ];
@@ -217,7 +302,7 @@ const defaultUsers = [
     email: "sidneyluizduarte@gmail.com",
     login: "teste",
     senha: "123456",
-    tipo: USER_TYPES.INTERNAL,
+    tipo: USER_TYPES.ADMIN,
     status: USER_STATUS.ACTIVE,
     clienteId: "zip",
     clientesPermitidos: ["*"],
@@ -244,7 +329,7 @@ const defaultTools = [
     descricao: "Analise, categorizacao e exportacao de extratos bancarios.",
     url: "",
     internalPath: "extract/index.html",
-    moduloId: "ferramentas",
+    moduloId: "ferramentas.analisador-extratos",
     status: USER_STATUS.ACTIVE,
     abrirNovaAba: false,
   },
@@ -299,6 +384,7 @@ saveCollection("zipLearningCourses", learningCourses);
 saveCollection("zipLearningAssessments", learningAssessments);
 syncLearningCategoriesFromCourses();
 saveCollection("zipLearningCategories", learningCategories);
+syncDefaultPermissionProfiles();
 saveCollection("zipPermissionProfiles", permissionProfiles);
 saveUsers();
 
@@ -327,6 +413,7 @@ function normalizeRoutePath(pathname = window.location.pathname) {
 function getRouteForPath(pathname = window.location.pathname) {
   const path = normalizeRoutePath(pathname);
   const toolRoute = Object.entries(TOOL_ROUTES).find(([, routePath]) => routePath === path);
+  const configRoute = Object.entries(CONFIG_VIEW_ROUTES).find(([, routePath]) => routePath === path);
   const learningRoute = Object.entries(LEARNING_VIEW_ROUTES).find(
     ([, routePath]) => routePath === path
   );
@@ -341,6 +428,22 @@ function getRouteForPath(pathname = window.location.pathname) {
 
   if (toolRoute) {
     return { section: "tools", toolId: toolRoute[0], path };
+  }
+
+  if (path === ROUTES.CONFIG) {
+    return {
+      section: "config",
+      configView: CONFIG_VIEWS.USERS,
+      path: ROUTES.CONFIG,
+    };
+  }
+
+  if (configRoute) {
+    return {
+      section: "config",
+      configView: configRoute[0],
+      path,
+    };
   }
 
   if (path === ROUTES.LEARNING) {
@@ -377,6 +480,10 @@ function getRouteForWorkspace(section, options = {}) {
 
   if (section === "learning") {
     return LEARNING_VIEW_ROUTES[options.learningView || activeLearningView] || ROUTES.LEARNING;
+  }
+
+  if (section === "config") {
+    return CONFIG_VIEW_ROUTES[options.configView || CONFIG_VIEWS.USERS] || ROUTES.CONFIG;
   }
 
   return ROUTES.HOME;
@@ -543,11 +650,21 @@ function normalizePermissionProfile(profile) {
   return {
     id: profile.id || "",
     nome: profile.nome || "",
-    tipo: profile.tipo || USER_TYPES.CLIENT,
+    tipo: normalizeUserType(profile.tipo),
     permissoes: Array.isArray(profile.permissoes)
       ? profile.permissoes.map(normalizeAccess)
       : [],
   };
+}
+
+function normalizeUserType(type) {
+  const normalizedType = String(type || "").trim().toLowerCase();
+
+  if ([USER_TYPES.ADMIN, USER_TYPES.COLLABORATOR].includes(normalizedType)) {
+    return normalizedType;
+  }
+
+  return LEGACY_USER_TYPE_MAP[normalizedType] || USER_TYPES.COLLABORATOR;
 }
 
 function normalizeAuthMethods(user) {
@@ -581,7 +698,7 @@ function normalizeUser(user) {
     email: normalizeEmail(user.email || ""),
     login,
     senha: user.senha || "",
-    tipo: user.tipo || USER_TYPES.CLIENT,
+    tipo: normalizeUserType(user.tipo),
     status: user.status || USER_STATUS.ACTIVE,
     clienteId: user.clienteId || "",
     clientesPermitidos: uniqueList(user.clientesPermitidos || []),
@@ -627,6 +744,19 @@ function loadCollection(storageKey, defaultCollection, normalizer) {
   }
 
   return defaultCollection.map((item) => normalizer({ ...item }));
+}
+
+function syncDefaultPermissionProfiles() {
+  defaultPermissionProfiles.forEach((defaultProfile) => {
+    const normalizedDefault = normalizePermissionProfile({ ...defaultProfile });
+    const profileIndex = permissionProfiles.findIndex((profile) => profile.id === normalizedDefault.id);
+
+    if (profileIndex >= 0) {
+      permissionProfiles[profileIndex] = normalizedDefault;
+    } else {
+      permissionProfiles.push(normalizedDefault);
+    }
+  });
 }
 
 function saveCollection(storageKey, collection) {
@@ -686,6 +816,10 @@ function hasActionAccess(user, moduloId, action) {
   });
 }
 
+function hasAnyActionAccess(user, moduleIds, action) {
+  return moduleIds.some((moduleId) => hasActionAccess(user, moduleId, action));
+}
+
 function canAccessTool(user, tool) {
   const linkedModule = getModuleById(tool.moduloId);
 
@@ -701,6 +835,41 @@ function getAvailableTools(user) {
   return tools.filter((tool) => canAccessTool(user, tool));
 }
 
+function getLearningModuleId(view) {
+  return LEARNING_VIEW_MODULES[view] || "aprendizado.cursos";
+}
+
+function canAccessLearningView(user, view) {
+  const moduleId = getLearningModuleId(view);
+  const linkedModule = getModuleById(moduleId);
+
+  return (
+    linkedModule &&
+    linkedModule.status === USER_STATUS.ACTIVE &&
+    hasActionAccess(user, moduleId, ACTIONS.VIEW)
+  );
+}
+
+function getAvailableLearningViews(user) {
+  return LEARNING_MENU_ORDER.filter((view) => canAccessLearningView(user, view));
+}
+
+function getFirstAvailableLearningView(user) {
+  return getAvailableLearningViews(user)[0] || "";
+}
+
+function canAccessConfigView(user, view) {
+  if (view === CONFIG_VIEWS.USERS) {
+    return hasActionAccess(user, "configuracoes.usuarios", ACTIONS.VIEW);
+  }
+
+  return false;
+}
+
+function canAccessConfig(user) {
+  return Object.values(CONFIG_VIEWS).some((view) => canAccessConfigView(user, view));
+}
+
 function canAccessRoute(user, route) {
   if (route.section === "tools" && route.toolId) {
     const tool = getToolById(route.toolId);
@@ -712,14 +881,44 @@ function canAccessRoute(user, route) {
   }
 
   if (route.section === "learning") {
-    return canAccessLearning(user);
+    return canAccessLearningView(user, route.learningView || getFirstAvailableLearningView(user));
+  }
+
+  if (route.section === "config") {
+    return canAccessConfigView(user, route.configView || CONFIG_VIEWS.USERS);
   }
 
   return true;
 }
 
 function canAccessLearning(user) {
-  return hasActionAccess(user, "aprendizado", ACTIONS.VIEW);
+  return getAvailableLearningViews(user).length > 0;
+}
+
+function getFallbackRoute(user) {
+  if (hasActionAccess(user, "home", ACTIONS.VIEW) || getUserAccess(user).length > 0) {
+    return { section: "home", path: ROUTES.HOME };
+  }
+
+  const firstTool = getAvailableTools(user)[0];
+  if (firstTool) {
+    return { section: "tools", path: TOOL_ROUTES[firstTool.id] || ROUTES.TOOLS, toolId: firstTool.id };
+  }
+
+  const firstLearningView = getFirstAvailableLearningView(user);
+  if (firstLearningView) {
+    return {
+      section: "learning",
+      learningView: firstLearningView,
+      path: LEARNING_VIEW_ROUTES[firstLearningView] || ROUTES.LEARNING,
+    };
+  }
+
+  if (canAccessConfig(user)) {
+    return { section: "config", configView: CONFIG_VIEWS.USERS, path: ROUTES.CONFIG_USERS };
+  }
+
+  return { section: "home", path: ROUTES.HOME };
 }
 
 function hasAuthMethod(user, authMethod) {
@@ -798,11 +997,16 @@ function createInternalGoogleUser(profile, hostedDomain) {
     email: googleEmail,
     login,
     senha: "",
-    tipo: USER_TYPES.INTERNAL,
+    tipo: USER_TYPES.COLLABORATOR,
     status: USER_STATUS.ACTIVE,
     clienteId: "zip",
     clientesPermitidos: ["*"],
-    modulosPermitidos: ["ferramentas", "aprendizado"],
+    modulosPermitidos: [
+      "ferramentas.analisador-extratos",
+      "aprendizado.cursos",
+      "aprendizado.trilhas",
+      "aprendizado.avaliacoes",
+    ],
     perfilId: "colaborador_zip",
     authMethods: [AUTH_METHODS.GOOGLE],
     dominioPermitido: normalizeLogin(hostedDomain),
@@ -1088,7 +1292,51 @@ function normalizePdfList(pdfs) {
 }
 
 function normalizeDocumentList(documents) {
-  return normalizePdfList(documents);
+  const source = Array.isArray(documents) ? documents : String(documents || "").split(/\r?\n/);
+  const normalizedDocuments = source
+    .map((document, index) => {
+      if (typeof document === "string") {
+        const url = document.trim();
+
+        return url
+          ? {
+              id: `doc-${index}-${normalizeLogin(getAttachmentName(url, index)) || Date.now()}`,
+              nome: getAttachmentName(url, index),
+              url,
+              tipo: "",
+              tamanho: 0,
+            }
+          : null;
+      }
+
+      const url = String(document.url || document.path || document.dataUrl || "").trim();
+      const name = String(document.nome || document.name || document.filename || "").trim();
+
+      if (!url && !name) {
+        return null;
+      }
+
+      return {
+        id: document.id || `doc-${Date.now().toString(36)}-${index}`,
+        nome: name || getAttachmentName(url, index),
+        url,
+        tipo: document.tipo || document.type || "",
+        tamanho: Number(document.tamanho || document.size || 0),
+      };
+    })
+    .filter(Boolean);
+
+  const seenDocuments = new Set();
+  return normalizedDocuments.filter((document) => {
+    const key = `${normalizeLogin(document.nome)}|${document.url}`;
+
+    if (seenDocuments.has(key)) {
+      return false;
+    }
+
+    seenDocuments.add(key);
+    return true;
+  });
 }
 
 function parseDurationToSeconds(duration) {
@@ -1153,7 +1401,7 @@ function getCourseVideos(course) {
 }
 
 function getCourseDocuments(course) {
-  return uniqueList(
+  return normalizeDocumentList(
     getCourseVideos(course).flatMap((video) => normalizeDocumentList(video.documentos || []))
   );
 }
@@ -1365,7 +1613,10 @@ function courseMatchesSearch(course, searchTerm) {
     ...getCourseModules(course).map((module) => module.titulo),
     ...getCourseVideos(course).flatMap((video) => [
       video.vimeo,
-      ...normalizeDocumentList(video.documentos || []),
+      ...normalizeDocumentList(video.documentos || []).flatMap((document) => [
+        document.nome,
+        document.url,
+      ]),
     ]),
   ];
 
@@ -1407,10 +1658,44 @@ function setActiveLearningMenu(view) {
   });
 }
 
+function syncLearningMenuAccess(user) {
+  learningSubmenuItems.forEach((item) => {
+    item.hidden = !canAccessLearningView(user, item.dataset.learningView);
+  });
+}
+
+function setConfigMenuExpanded(isExpanded) {
+  const expanded = Boolean(isExpanded);
+  navConfig.classList.toggle("is-expanded", expanded);
+  navConfig.setAttribute("aria-expanded", String(expanded));
+  configSubmenu.hidden = !expanded;
+}
+
+function setActiveConfigMenu(view) {
+  configSubmenuItems.forEach((item) => {
+    item.classList.toggle("is-active", item.dataset.configView === view);
+  });
+}
+
+function syncConfigMenuAccess(user) {
+  configNavGroup.hidden = !canAccessConfig(user);
+  configSubmenuItems.forEach((item) => {
+    item.hidden = !canAccessConfigView(user, item.dataset.configView);
+  });
+}
+
 function setLearningView(view) {
-  activeLearningView = Object.values(LEARNING_VIEWS).includes(view)
+  const requestedView = Object.values(LEARNING_VIEWS).includes(view)
     ? view
     : LEARNING_VIEWS.COURSES;
+  activeLearningView = currentUser && canAccessLearningView(currentUser, requestedView)
+    ? requestedView
+    : getFirstAvailableLearningView(currentUser);
+
+  if (!activeLearningView) {
+    setWorkspaceSection("home", { replaceRoute: true });
+    return;
+  }
 
   learningViews.forEach((viewElement) => {
     viewElement.hidden = viewElement.dataset.learningView !== activeLearningView;
@@ -1439,6 +1724,26 @@ function setLearningView(view) {
   renderLearningStats();
 }
 
+function setConfigView(view) {
+  const activeConfigView = Object.values(CONFIG_VIEWS).includes(view)
+    ? view
+    : CONFIG_VIEWS.USERS;
+
+  if (!currentUser || !canAccessConfigView(currentUser, activeConfigView)) {
+    setWorkspaceSection("home", { replaceRoute: true });
+    return;
+  }
+
+  configViews.forEach((viewElement) => {
+    viewElement.hidden = viewElement.dataset.configView !== activeConfigView;
+  });
+
+  setActiveConfigMenu(activeConfigView);
+  workspaceEyebrow.textContent = "Configura\u00e7\u00f5es";
+  workspaceTitle.textContent = "Usu\u00e1rios";
+  renderUsersConfig();
+}
+
 function getVimeoId(vimeoValue) {
   const value = String(vimeoValue || "").trim();
 
@@ -1457,6 +1762,10 @@ function getVimeoEmbedUrl(vimeoValue) {
 }
 
 function getAttachmentName(pdf, index) {
+  if (pdf && typeof pdf === "object") {
+    return pdf.nome || pdf.name || `PDF ${index + 1}`;
+  }
+
   const cleanedPdf = String(pdf || "").split("?")[0].replace(/\/+$/, "");
   const fallbackName = `PDF ${index + 1}`;
 
@@ -1468,6 +1777,24 @@ function getAttachmentName(pdf, index) {
     const lastSegment = cleanedPdf.split(/[\\/]/).filter(Boolean).pop();
     return lastSegment || fallbackName;
   }
+}
+
+function getDocumentHref(document) {
+  return typeof document === "string" ? document : document.url || "";
+}
+
+function formatFileSize(bytes) {
+  const size = Number(bytes || 0);
+
+  if (!size) {
+    return "";
+  }
+
+  if (size < 1024 * 1024) {
+    return `${Math.ceil(size / 1024)} KB`;
+  }
+
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function getNextLearningModuleId() {
@@ -1499,6 +1826,101 @@ function createTextInput(className, value = "") {
   return input;
 }
 
+function getVideoEditorDocuments(videoElement) {
+  try {
+    return normalizeDocumentList(JSON.parse(videoElement.dataset.documents || "[]"));
+  } catch {
+    return [];
+  }
+}
+
+function setVideoEditorDocuments(videoElement, documents) {
+  videoElement.dataset.documents = JSON.stringify(normalizeDocumentList(documents));
+}
+
+function renderVideoDocumentList(videoElement) {
+  const list = videoElement.querySelector(".learning-document-list");
+
+  if (!list) {
+    return;
+  }
+
+  clearElement(list);
+
+  const documents = getVideoEditorDocuments(videoElement);
+
+  if (documents.length === 0) {
+    const empty = document.createElement("span");
+    empty.className = "learning-document-empty";
+    empty.textContent = "Nenhum documento anexado.";
+    list.appendChild(empty);
+    return;
+  }
+
+  documents.forEach((document, index) => {
+    const item = document.createElement("div");
+    item.className = "learning-document-item";
+
+    const name = document.createElement("span");
+    const size = formatFileSize(document.tamanho);
+    name.textContent = size ? `${getAttachmentName(document, index)} - ${size}` : getAttachmentName(document, index);
+
+    const removeButton = document.createElement("button");
+    removeButton.className = "learning-danger-action";
+    removeButton.type = "button";
+    removeButton.dataset.action = "remove-document";
+    removeButton.dataset.documentIndex = String(index);
+    removeButton.textContent = "Remover";
+
+    item.append(name, removeButton);
+    list.appendChild(item);
+  });
+}
+
+function createDocumentUploader(videoElement, documents) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "learning-document-uploader";
+
+  const label = document.createElement("label");
+  label.className = "learning-secondary-action learning-document-uploader__button";
+  label.textContent = "Anexar PDF ou documento";
+
+  const input = document.createElement("input");
+  input.className = "learning-document-uploader__input";
+  input.type = "file";
+  input.multiple = true;
+  input.accept = ".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
+  const list = document.createElement("div");
+  list.className = "learning-document-list";
+
+  label.appendChild(input);
+  wrapper.append(label, list);
+  setVideoEditorDocuments(videoElement, documents);
+  renderVideoDocumentList(videoElement);
+
+  return wrapper;
+}
+
+function readFileAsDocument(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.addEventListener("load", () => {
+      resolve({
+        id: `doc-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+        nome: file.name,
+        url: String(reader.result || ""),
+        tipo: file.type,
+        tamanho: file.size,
+      });
+    });
+
+    reader.addEventListener("error", () => reject(reader.error));
+    reader.readAsDataURL(file);
+  });
+}
+
 function createLearningVideoEditor(video = {}) {
   const videoElement = document.createElement("article");
   videoElement.className = "learning-video-editor";
@@ -1518,18 +1940,17 @@ function createLearningVideoEditor(video = {}) {
     durationInput.dataset.seconds = String(video.duracaoSegundos);
   }
 
-  const documentsInput = document.createElement("textarea");
-  documentsInput.className = "learning-video-documents";
-  documentsInput.rows = 2;
-  documentsInput.placeholder = "Um link ou caminho por linha";
-  documentsInput.value = normalizeDocumentList(video.documentos || []).join("\n");
+  const documentsUploader = createDocumentUploader(
+    videoElement,
+    normalizeDocumentList(video.documentos || [])
+  );
 
   const grid = document.createElement("div");
   grid.className = "learning-video-editor__grid";
   grid.append(
     createWrappedInput("Link ou ID do Vimeo", vimeoInput),
     createWrappedInput("Dura\u00e7\u00e3o", durationInput),
-    createWrappedInput("PDF ou documento", documentsInput)
+    createWrappedInput("PDF ou documento", documentsUploader)
   );
 
   const actions = document.createElement("div");
@@ -1553,6 +1974,7 @@ function createLearningVideoEditor(video = {}) {
 
   actions.append(fetchButton, removeButton, status);
   videoElement.append(grid, actions);
+  renderVideoDocumentList(videoElement);
 
   return videoElement;
 }
@@ -1656,7 +2078,6 @@ function extractLearningModulesFromForm() {
         (videoElement, videoIndex) => {
           const vimeoInput = videoElement.querySelector(".learning-video-vimeo");
           const durationInput = videoElement.querySelector(".learning-video-duration");
-          const documentsInput = videoElement.querySelector(".learning-video-documents");
           const duracaoSegundos = Number(durationInput.dataset.seconds || 0) ||
             parseDurationToSeconds(durationInput.value);
 
@@ -1665,7 +2086,7 @@ function extractLearningModulesFromForm() {
             vimeo: vimeoInput.value.trim(),
             duracao: durationInput.value.trim(),
             duracaoSegundos,
-            documentos: normalizeDocumentList(documentsInput.value),
+            documentos: getVideoEditorDocuments(videoElement),
           });
         }
       );
@@ -1847,12 +2268,12 @@ function createLearningPlayerVideoRow(course, module, video, videoIndex) {
 
   row.append(action, details);
 
-  normalizeDocumentList(video.documentos || []).forEach((documentUrl, documentIndex) => {
+  normalizeDocumentList(video.documentos || []).forEach((documentItem, documentIndex) => {
     const link = document.createElement("a");
-    link.href = documentUrl;
+    link.href = getDocumentHref(documentItem);
     link.target = "_blank";
     link.rel = "noopener noreferrer";
-    link.textContent = getAttachmentName(documentUrl, documentIndex);
+    link.textContent = getAttachmentName(documentItem, documentIndex);
     row.appendChild(link);
   });
 
@@ -2094,12 +2515,212 @@ function saveLearningAssessment(event) {
   renderLearningAssessment();
 }
 
+function getUserTypeLabel(type) {
+  return normalizeUserType(type) === USER_TYPES.ADMIN ? "Administrador" : "Colaborador";
+}
+
+function createUserIdFromLogin(login) {
+  const baseId = normalizeLogin(login).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  let userId = `usr-${baseId || Date.now().toString(36)}`;
+  let suffix = 1;
+
+  while (users.some((user) => user.id === userId)) {
+    suffix += 1;
+    userId = `usr-${baseId}-${suffix}`;
+  }
+
+  return userId;
+}
+
+function getSelectedUserPermissionModules() {
+  return Array.from(userConfigPermissionInputs)
+    .filter((input) => input.checked)
+    .map((input) => input.value);
+}
+
+function buildUserAccessFromModules(type, moduleIds) {
+  if (normalizeUserType(type) === USER_TYPES.ADMIN) {
+    return [
+      {
+        clienteId: "*",
+        moduloId: "*",
+        acoes: Object.values(ACTIONS),
+      },
+    ];
+  }
+
+  return moduleIds.map((moduleId) => ({
+    clienteId: "*",
+    moduloId: moduleId,
+    acoes: [ACTIONS.VIEW],
+  }));
+}
+
+function getUserPermissionModules(user) {
+  const access = getUserAccess(user);
+
+  if (access.some((item) => item.moduloId === "*")) {
+    return Object.keys(MODULE_LABELS);
+  }
+
+  return access.map((item) => item.moduloId).filter((moduleId) => MODULE_LABELS[moduleId]);
+}
+
+function setUserConfigStatus(message, isError = false) {
+  userConfigStatusMessage.textContent = message;
+  userConfigStatusMessage.hidden = !message;
+  userConfigStatusMessage.classList.toggle("is-error", isError);
+}
+
+function resetUserConfigForm() {
+  userConfigForm.reset();
+  userConfigIdInput.value = "";
+  userConfigTypeInput.value = USER_TYPES.COLLABORATOR;
+  userConfigStatusInput.value = USER_STATUS.ACTIVE;
+  userConfigPermissionInputs.forEach((input) => {
+    input.checked = ["ferramentas.analisador-extratos", "aprendizado.cursos", "aprendizado.trilhas", "aprendizado.avaliacoes"].includes(input.value);
+  });
+  userConfigLoginInput.disabled = false;
+  setUserConfigStatus("");
+}
+
+function fillUserConfigForm(user) {
+  userConfigIdInput.value = user.id;
+  userConfigNameInput.value = user.nomeCompleto;
+  userConfigLoginInput.value = user.login;
+  userConfigLoginInput.disabled = Boolean(user.isTestUser);
+  userConfigEmailInput.value = user.email;
+  userConfigPasswordInput.value = "";
+  userConfigPasswordInput.placeholder = "Manter senha atual";
+  userConfigTypeInput.value = normalizeUserType(user.tipo);
+  userConfigStatusInput.value = user.status;
+
+  const userModules = getUserPermissionModules(user);
+  userConfigPermissionInputs.forEach((input) => {
+    input.checked = userModules.includes(input.value);
+  });
+
+  setUserConfigStatus("");
+}
+
+function saveUserConfig(event) {
+  event.preventDefault();
+
+  if (!userConfigForm.checkValidity()) {
+    userConfigForm.reportValidity();
+    return;
+  }
+
+  const userId = userConfigIdInput.value || createUserIdFromLogin(userConfigLoginInput.value);
+  const existingUser = users.find((user) => user.id === userId);
+  const type = normalizeUserType(userConfigTypeInput.value);
+  const selectedModules = getSelectedUserPermissionModules();
+
+  if (type === USER_TYPES.COLLABORATOR && selectedModules.length === 0) {
+    setUserConfigStatus("Selecione pelo menos um acesso para o colaborador.", true);
+    return;
+  }
+
+  const duplicateLogin = users.some(
+    (user) => user.id !== userId && normalizeLogin(user.login) === normalizeLogin(userConfigLoginInput.value)
+  );
+
+  if (duplicateLogin) {
+    setUserConfigStatus("Ja existe um usuario com este login.", true);
+    return;
+  }
+
+  const user = normalizeUser({
+    ...(existingUser || {}),
+    id: userId,
+    nomeCompleto: userConfigNameInput.value.trim(),
+    email: userConfigEmailInput.value,
+    login: userConfigLoginInput.value.trim(),
+    senha: userConfigPasswordInput.value || (existingUser ? existingUser.senha : ""),
+    tipo: type,
+    status: userConfigStatusInput.value,
+    clienteId: existingUser ? existingUser.clienteId : "zip",
+    clientesPermitidos: existingUser ? existingUser.clientesPermitidos : ["*"],
+    modulosPermitidos: type === USER_TYPES.ADMIN ? ["*"] : selectedModules,
+    perfilId: "",
+    authMethods: existingUser ? existingUser.authMethods : [AUTH_METHODS.PASSWORD],
+    dominioPermitido: existingUser ? existingUser.dominioPermitido : "",
+    googleSub: existingUser ? existingUser.googleSub : "",
+    acessos: buildUserAccessFromModules(type, selectedModules),
+    isTestUser: existingUser ? existingUser.isTestUser : false,
+  });
+
+  const existingIndex = users.findIndex((item) => item.id === user.id);
+
+  if (existingIndex >= 0) {
+    users[existingIndex] = user;
+  } else {
+    users.push(user);
+  }
+
+  saveUsers();
+  renderUsersConfig();
+  fillUserConfigForm(user);
+  setUserConfigStatus("Usuario salvo localmente.");
+}
+
+function createUserConfigCard(user) {
+  const card = document.createElement("article");
+  card.className = "config-user-card";
+
+  const header = document.createElement("div");
+  header.className = "config-user-card__header";
+
+  const identity = document.createElement("div");
+  const name = document.createElement("strong");
+  name.textContent = user.nomeCompleto || user.login;
+  const details = document.createElement("span");
+  details.textContent = `${getUserTypeLabel(user.tipo)} - ${user.status}`;
+  identity.append(name, details);
+
+  const editButton = document.createElement("button");
+  editButton.className = "learning-secondary-action";
+  editButton.type = "button";
+  editButton.dataset.userId = user.id;
+  editButton.textContent = "Editar";
+
+  header.append(identity, editButton);
+
+  const chips = document.createElement("div");
+  chips.className = "config-permission-chips";
+  getUserPermissionModules(user).forEach((moduleId) => {
+    const chip = document.createElement("span");
+    chip.textContent = MODULE_LABELS[moduleId] || moduleId;
+    chips.appendChild(chip);
+  });
+
+  if (chips.children.length === 0) {
+    const chip = document.createElement("span");
+    chip.textContent = "Sem acessos configurados";
+    chips.appendChild(chip);
+  }
+
+  card.append(header, chips);
+  return card;
+}
+
+function renderUsersConfig() {
+  clearElement(configUserList);
+
+  users
+    .slice()
+    .sort((first, second) => (first.nomeCompleto || first.login).localeCompare(second.nomeCompleto || second.login, "pt-BR"))
+    .forEach((user) => {
+      configUserList.appendChild(createUserConfigCard(user));
+    });
+}
+
 function renderAuthenticatedApp(user, options = {}) {
   currentUser = user;
   const availableTools = getAvailableTools(user);
   const requestedRoute = options.route || getRouteForPath();
   const canOpenRequestedRoute = canAccessRoute(user, requestedRoute);
-  const route = canOpenRequestedRoute ? requestedRoute : { section: "home", path: ROUTES.HOME };
+  const route = canOpenRequestedRoute ? requestedRoute : getFallbackRoute(user);
 
   clearToolsGrid();
   clearToolsSubmenu();
@@ -2112,16 +2733,22 @@ function renderAuthenticatedApp(user, options = {}) {
   toolFrame.removeAttribute("src");
   toolsGrid.hidden = false;
   toolsEmpty.hidden = availableTools.length > 0;
+  navTools.closest(".sidebar__group").hidden = availableTools.length === 0;
   setToolsMenuExpanded(availableTools.length > 0);
+  syncLearningMenuAccess(user);
+  syncConfigMenuAccess(user);
   learningNavGroup.hidden = !canAccessLearning(user);
   setLearningMenuExpanded(false);
+  setConfigMenuExpanded(false);
   activeLearningView = LEARNING_VIEWS.COURSES;
   initializeLearningCourseForm();
+  resetUserConfigForm();
   renderLearningStats();
   loginPage.classList.add("is-authenticated");
   appShell.hidden = false;
   setWorkspaceSection(route.section, {
     learningView: route.learningView,
+    configView: route.configView,
     toolId: route.toolId,
     routePath: route.path,
     replaceRoute: options.replaceRoute || !canOpenRequestedRoute,
@@ -2132,18 +2759,22 @@ function setWorkspaceSection(section, options = {}) {
   const isHome = section === "home";
   const isTools = section === "tools";
   const isLearning = section === "learning";
+  const isConfig = section === "config";
 
   homeSection.hidden = !isHome;
   toolsSection.hidden = !isTools;
   learningSection.hidden = !isLearning;
+  configSection.hidden = !isConfig;
   navHome.classList.toggle("is-active", isHome);
   navTools.classList.toggle("is-active", isTools);
   navLearning.classList.toggle("is-active", isLearning);
+  navConfig.classList.toggle("is-active", isConfig);
 
   if (isHome) {
     setActiveToolMenu("");
     setToolsMenuExpanded(false);
     setLearningMenuExpanded(false);
+    setConfigMenuExpanded(false);
     toolFrameView.hidden = true;
     toolFrame.removeAttribute("src");
     workspaceEyebrow.textContent = "Home";
@@ -2152,6 +2783,7 @@ function setWorkspaceSection(section, options = {}) {
 
   if (isTools) {
     setLearningMenuExpanded(false);
+    setConfigMenuExpanded(false);
 
     if (options.toolId) {
       const tool = getAvailableTools(currentUser).find((availableTool) => availableTool.id === options.toolId);
@@ -2169,10 +2801,21 @@ function setWorkspaceSection(section, options = {}) {
   if (isLearning) {
     setActiveToolMenu("");
     setToolsMenuExpanded(false);
+    setConfigMenuExpanded(false);
     setLearningMenuExpanded(true);
     toolFrameView.hidden = true;
     toolFrame.removeAttribute("src");
     setLearningView(options.learningView || activeLearningView);
+  }
+
+  if (isConfig) {
+    setActiveToolMenu("");
+    setToolsMenuExpanded(false);
+    setLearningMenuExpanded(false);
+    setConfigMenuExpanded(true);
+    toolFrameView.hidden = true;
+    toolFrame.removeAttribute("src");
+    setConfigView(options.configView || CONFIG_VIEWS.USERS);
   }
 
   if (!options.skipRouteUpdate) {
@@ -2187,6 +2830,7 @@ function logout() {
   appShell.hidden = true;
   loginPage.classList.remove("is-authenticated");
   toolFrameView.hidden = true;
+  configSection.hidden = true;
   toolFrame.removeAttribute("src");
   loginForm.reset();
   clearLoginError();
@@ -2504,11 +3148,13 @@ function syncWorkspaceFromRoute() {
 
   const route = getRouteForPath();
   const canOpenRequestedRoute = canAccessRoute(currentUser, route);
+  const nextRoute = canOpenRequestedRoute ? route : getFallbackRoute(currentUser);
 
-  setWorkspaceSection(canOpenRequestedRoute ? route.section : "home", {
-    learningView: route.learningView,
-    toolId: route.toolId,
-    routePath: route.path,
+  setWorkspaceSection(nextRoute.section, {
+    learningView: nextRoute.learningView,
+    configView: nextRoute.configView,
+    toolId: nextRoute.toolId,
+    routePath: nextRoute.path,
     replaceRoute: !canOpenRequestedRoute,
   });
 }
@@ -2622,6 +3268,10 @@ sidebarToggle.addEventListener("click", () => {
 });
 logoutButton.addEventListener("click", logout);
 navTools.addEventListener("click", () => {
+  if (getAvailableTools(currentUser).length === 0) {
+    return;
+  }
+
   const wasToolsActive = navTools.classList.contains("is-active");
 
   setWorkspaceSection("tools");
@@ -2630,16 +3280,42 @@ navTools.addEventListener("click", () => {
 navHome.addEventListener("click", () => setWorkspaceSection("home"));
 navLearning.addEventListener("click", () => {
   const wasLearningActive = navLearning.classList.contains("is-active");
+  const firstLearningView = getFirstAvailableLearningView(currentUser);
 
   setWorkspaceSection("learning", {
-    learningView: LEARNING_VIEWS.COURSES,
-    routePath: ROUTES.LEARNING,
+    learningView: firstLearningView || LEARNING_VIEWS.COURSES,
+    routePath: LEARNING_VIEW_ROUTES[firstLearningView] || ROUTES.LEARNING,
   });
   setLearningMenuExpanded(wasLearningActive ? !learningMenuExpanded : true);
 });
 learningSubmenuItems.forEach((item) => {
   item.addEventListener("click", () => {
+    if (!canAccessLearningView(currentUser, item.dataset.learningView)) {
+      return;
+    }
+
     setWorkspaceSection("learning", { learningView: item.dataset.learningView });
+  });
+});
+navConfig.addEventListener("click", () => {
+  if (!canAccessConfig(currentUser)) {
+    return;
+  }
+
+  const wasConfigActive = navConfig.classList.contains("is-active");
+  setWorkspaceSection("config", {
+    configView: CONFIG_VIEWS.USERS,
+    routePath: ROUTES.CONFIG,
+  });
+  setConfigMenuExpanded(wasConfigActive ? !configSubmenu.hidden : true);
+});
+configSubmenuItems.forEach((item) => {
+  item.addEventListener("click", () => {
+    if (!canAccessConfigView(currentUser, item.dataset.configView)) {
+      return;
+    }
+
+    setWorkspaceSection("config", { configView: item.dataset.configView });
   });
 });
 toolBackButton.addEventListener("click", () => setWorkspaceSection("tools"));
@@ -2716,8 +3392,41 @@ learningCourseModulesList.addEventListener("click", async (event) => {
     return;
   }
 
+  if (action === "remove-document" && videoElement) {
+    const documents = getVideoEditorDocuments(videoElement);
+    documents.splice(Number(actionButton.dataset.documentIndex || 0), 1);
+    setVideoEditorDocuments(videoElement, documents);
+    renderVideoDocumentList(videoElement);
+    return;
+  }
+
   if (action === "fetch-vimeo-duration" && videoElement) {
     await fetchVimeoDurationForVideo(actionButton);
+  }
+});
+learningCourseModulesList.addEventListener("change", async (event) => {
+  if (!event.target.classList.contains("learning-document-uploader__input")) {
+    return;
+  }
+
+  const videoElement = event.target.closest(".learning-video-editor");
+  const files = Array.from(event.target.files || []);
+
+  if (!videoElement || files.length === 0) {
+    return;
+  }
+
+  setVideoEditorStatus(videoElement, "Anexando documento...");
+
+  try {
+    const currentDocuments = getVideoEditorDocuments(videoElement);
+    const newDocuments = await Promise.all(files.map(readFileAsDocument));
+    setVideoEditorDocuments(videoElement, [...currentDocuments, ...newDocuments]);
+    renderVideoDocumentList(videoElement);
+    setVideoEditorStatus(videoElement, "Documento anexado localmente.");
+    event.target.value = "";
+  } catch {
+    setVideoEditorStatus(videoElement, "Nao foi possivel anexar este documento.", true);
   }
 });
 learningCourseModulesList.addEventListener("input", (event) => {
@@ -2745,6 +3454,28 @@ learningTrackDepartmentFilter.addEventListener("change", renderLearningTracks);
 learningAssessmentForm.addEventListener("submit", saveLearningAssessment);
 learningAssessmentForm.addEventListener("input", () => {
   learningAssessmentStatusMessage.hidden = true;
+});
+userConfigForm.addEventListener("submit", saveUserConfig);
+userConfigResetButton.addEventListener("click", resetUserConfigForm);
+userConfigTypeInput.addEventListener("change", () => {
+  if (userConfigTypeInput.value === USER_TYPES.ADMIN) {
+    userConfigPermissionInputs.forEach((input) => {
+      input.checked = true;
+    });
+  }
+});
+configUserList.addEventListener("click", (event) => {
+  const editButton = event.target.closest("[data-user-id]");
+
+  if (!editButton) {
+    return;
+  }
+
+  const user = users.find((item) => item.id === editButton.dataset.userId);
+
+  if (user) {
+    fillUserConfigForm(user);
+  }
 });
 
 usuarioInput.addEventListener("input", () => {
