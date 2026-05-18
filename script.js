@@ -219,6 +219,7 @@ const DEFAULT_LEARNING_DEPARTMENTS = [
 ];
 
 const HOME_UPDATES_PER_PAGE = 5;
+const ADMIN_EMAILS = ["sidney.duarte@zipcontabilidade.com.br"];
 
 // Preencha com o Client ID web do Google Cloud para ativar o login real.
 const googleClientId = "403916379779-9ioro1su7nq24uip6l8fadjv77vomn1b.apps.googleusercontent.com";
@@ -333,6 +334,30 @@ const defaultUsers = [
       },
     ],
     isTestUser: true,
+  },
+  {
+    id: "usr-sidney-duarte",
+    nomeCompleto: "SIDNEY LUIZ DUARTE",
+    email: "sidney.duarte@zipcontabilidade.com.br",
+    login: "sidney.duarte",
+    senha: "",
+    tipo: USER_TYPES.ADMIN,
+    status: USER_STATUS.ACTIVE,
+    clienteId: "zip",
+    clientesPermitidos: ["*"],
+    modulosPermitidos: ["*"],
+    perfilId: "admin_zip",
+    authMethods: [AUTH_METHODS.GOOGLE],
+    dominioPermitido: "zipcontabilidade.com.br",
+    googleSub: "",
+    acessos: [
+      {
+        clienteId: "*",
+        moduloId: "*",
+        acoes: Object.values(ACTIONS),
+      },
+    ],
+    isTestUser: false,
   },
 ];
 
@@ -682,6 +707,38 @@ function normalizeUserType(type) {
   return LEGACY_USER_TYPE_MAP[normalizedType] || USER_TYPES.COLLABORATOR;
 }
 
+function isConfiguredAdminEmail(email) {
+  return ADMIN_EMAILS.includes(normalizeEmail(email));
+}
+
+function getAdminAccess() {
+  return [
+    {
+      clienteId: "*",
+      moduloId: "*",
+      acoes: Object.values(ACTIONS),
+    },
+  ];
+}
+
+function promoteConfiguredAdminUser(user) {
+  return {
+    ...user,
+    tipo: USER_TYPES.ADMIN,
+    status: USER_STATUS.ACTIVE,
+    clienteId: user.clienteId || "zip",
+    clientesPermitidos: ["*"],
+    modulosPermitidos: ["*"],
+    perfilId: "admin_zip",
+    authMethods: uniqueList([
+      ...(user.authMethods || []),
+      AUTH_METHODS.GOOGLE,
+    ]),
+    dominioPermitido: user.dominioPermitido || "zipcontabilidade.com.br",
+    acessos: getAdminAccess(),
+  };
+}
+
 function normalizeAuthMethods(user) {
   const authMethods = Array.isArray(user.authMethods) ? user.authMethods : [];
   const legacyAuthMethod = user.authMethod || user.tipoAutenticacao || "";
@@ -733,6 +790,10 @@ function normalizeUser(user) {
       googleSub: normalizedUser.googleSub,
       acessos: normalizedUser.acessos.length > 0 ? normalizedUser.acessos : defaultUsers[0].acessos,
     };
+  }
+
+  if (isConfiguredAdminEmail(normalizedUser.email)) {
+    return promoteConfiguredAdminUser(normalizedUser);
   }
 
   return normalizedUser;
@@ -1012,21 +1073,23 @@ function createInternalGoogleUser(profile, hostedDomain) {
     email: googleEmail,
     login,
     senha: "",
-    tipo: USER_TYPES.COLLABORATOR,
+    tipo: isConfiguredAdminEmail(googleEmail) ? USER_TYPES.ADMIN : USER_TYPES.COLLABORATOR,
     status: USER_STATUS.ACTIVE,
     clienteId: "zip",
     clientesPermitidos: ["*"],
-    modulosPermitidos: [
-      "ferramentas.analisador-extratos",
-      "aprendizado.cursos",
-      "aprendizado.trilhas",
-      "aprendizado.avaliacoes",
-    ],
-    perfilId: "colaborador_zip",
+    modulosPermitidos: isConfiguredAdminEmail(googleEmail)
+      ? ["*"]
+      : [
+          "ferramentas.analisador-extratos",
+          "aprendizado.cursos",
+          "aprendizado.trilhas",
+          "aprendizado.avaliacoes",
+        ],
+    perfilId: isConfiguredAdminEmail(googleEmail) ? "admin_zip" : "colaborador_zip",
     authMethods: [AUTH_METHODS.GOOGLE],
     dominioPermitido: normalizeLogin(hostedDomain),
     googleSub: profile.sub || "",
-    acessos: [],
+    acessos: isConfiguredAdminEmail(googleEmail) ? getAdminAccess() : [],
   });
 
   users.push(user);
@@ -2601,13 +2664,7 @@ function getSelectedUserPermissionModules() {
 
 function buildUserAccessFromModules(type, moduleIds) {
   if (normalizeUserType(type) === USER_TYPES.ADMIN) {
-    return [
-      {
-        clienteId: "*",
-        moduloId: "*",
-        acoes: Object.values(ACTIONS),
-      },
-    ];
+    return getAdminAccess();
   }
 
   return moduleIds.map((moduleId) => ({
