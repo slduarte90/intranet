@@ -345,6 +345,13 @@
                 <li>
                   <time datetime="2026-05-18">18/05/2026</time>
                   <div>
+                    <strong>Cadastro de cursos padronizado</strong>
+                    <p>Menus de categoria e departamento agora usam o mesmo formato de sele&ccedil;&atilde;o.</p>
+                  </div>
+                </li>
+                <li>
+                  <time datetime="2026-05-18">18/05/2026</time>
+                  <div>
                     <strong>Configura&ccedil;&otilde;es e permiss&otilde;es modulares</strong>
                     <p>Cadastro de usu&aacute;rios passou a separar administradores e colaboradores com acessos por m&oacute;dulo e subm&oacute;dulo.</p>
                   </div>
@@ -446,19 +453,7 @@
 
                     <label class="field learning-field" for="course-department">
                       <span>Departamento</span>
-                      <input
-                        id="course-department"
-                        name="course-department"
-                        type="text"
-                        list="course-department-options"
-                      />
-                      <datalist id="course-department-options">
-                        <option value="Contabilidade"></option>
-                        <option value="Fiscal"></option>
-                        <option value="Departamento Pessoal"></option>
-                        <option value="Tecnologia"></option>
-                        <option value="Comercial"></option>
-                      </datalist>
+                      <select id="course-department" name="course-department"></select>
                     </label>
 
                     <label class="field learning-field" for="course-total-duration">
@@ -809,6 +804,6 @@
       </section>
     </main>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="/script.js?v=20260518-modular-access"></script>
+    <script src="/script.js?v=20260518-course-selects"></script>
   </body>
 </html>

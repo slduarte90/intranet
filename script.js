@@ -206,6 +206,14 @@ const MODULE_LABELS = {
   "configuracoes.usuarios": "Configura\u00e7\u00f5es - Usu\u00e1rios",
 };
 
+const DEFAULT_LEARNING_DEPARTMENTS = [
+  "Contabilidade",
+  "Fiscal",
+  "Departamento Pessoal",
+  "Tecnologia",
+  "Comercial",
+];
+
 // Preencha com o Client ID web do Google Cloud para ativar o login real.
 const googleClientId = "403916379779-9ioro1su7nq24uip6l8fadjv77vomn1b.apps.googleusercontent.com";
 
@@ -1506,6 +1514,29 @@ function renderLearningCategoryOptions() {
   }
 }
 
+function renderLearningDepartmentOptions() {
+  const currentValue = courseDepartmentInput.value;
+  const departmentNames = uniqueList([
+    ...DEFAULT_LEARNING_DEPARTMENTS,
+    ...getLearningDepartments(),
+  ]).sort((first, second) => first.localeCompare(second, "pt-BR"));
+
+  clearElement(courseDepartmentInput);
+
+  departmentNames.forEach((departmentName) => {
+    const option = document.createElement("option");
+    option.value = departmentName;
+    option.textContent = departmentName;
+    courseDepartmentInput.appendChild(option);
+  });
+
+  if (departmentNames.includes(currentValue)) {
+    courseDepartmentInput.value = currentValue;
+  } else if (departmentNames.length > 0) {
+    courseDepartmentInput.value = departmentNames[0];
+  }
+}
+
 function setLearningCategoryStatus(message, isError = false) {
   learningCategoryStatus.textContent = message;
   learningCategoryStatus.hidden = !message;
@@ -1550,6 +1581,7 @@ function getFilteredLearningCategories() {
 
 function renderLearningCategories() {
   renderLearningCategoryOptions();
+  renderLearningDepartmentOptions();
   const visibleCategories = getFilteredLearningCategories();
 
   clearElement(learningCategoryList);
@@ -2035,7 +2067,7 @@ function initializeLearningCourseForm() {
   renderLearningCategories();
   courseTitleInput.value = "";
   renderLearningCategoryOptions();
-  courseDepartmentInput.value = "";
+  renderLearningDepartmentOptions();
   courseTotalDurationInput.value = "0 min";
   clearElement(learningCourseModulesList);
   learningCourseModulesList.appendChild(createLearningModuleEditor({
@@ -2221,6 +2253,7 @@ function getFilteredLearningCourses() {
 }
 
 function renderLearningCourses() {
+  renderLearningDepartmentOptions();
   syncLearningDepartmentFilters();
   const visibleCourses = getFilteredLearningCourses();
 
