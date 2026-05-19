@@ -853,6 +853,49 @@ function saveCollection(storageKey, collection) {
   }
 }
 
+function getUserIdentityKey(user) {
+  const email = normalizeEmail(user.email);
+  const login = normalizeLogin(user.login);
+
+  if (email) {
+    return `email:${email}`;
+  }
+
+  if (login) {
+    return `login:${login}`;
+  }
+
+  return `id:${user.id}`;
+}
+
+function mergeDuplicateUser(currentUser, nextUser) {
+  return normalizeUser({
+    ...nextUser,
+    ...currentUser,
+    id: currentUser.id || nextUser.id,
+    senha: currentUser.senha || nextUser.senha,
+    authMethods: uniqueList([...(nextUser.authMethods || []), ...(currentUser.authMethods || [])]),
+    clientesPermitidos: uniqueList([...(nextUser.clientesPermitidos || []), ...(currentUser.clientesPermitidos || [])]),
+    modulosPermitidos: uniqueList([...(nextUser.modulosPermitidos || []), ...(currentUser.modulosPermitidos || [])]),
+    googleSub: currentUser.googleSub || nextUser.googleSub || "",
+    acessos: currentUser.acessos && currentUser.acessos.length > 0 ? currentUser.acessos : nextUser.acessos,
+    isTestUser: Boolean(currentUser.isTestUser || nextUser.isTestUser),
+  });
+}
+
+function dedupeUsersByIdentity(userCollection) {
+  const usersByIdentity = new Map();
+
+  userCollection.forEach((user) => {
+    const identityKey = getUserIdentityKey(user);
+    const currentUser = usersByIdentity.get(identityKey);
+
+    usersByIdentity.set(identityKey, currentUser ? mergeDuplicateUser(currentUser, user) : user);
+  });
+
+  return Array.from(usersByIdentity.values());
+}
+
 function loadUsers() {
   const normalizedUsers = loadCollection("zipUsers", defaultUsers, normalizeUser);
   const hasTestUser = normalizedUsers.some((user) => user.id === "usr-teste");
@@ -861,7 +904,7 @@ function loadUsers() {
     normalizedUsers.push({ ...defaultUsers[0] });
   }
 
-  return normalizedUsers;
+  return dedupeUsersByIdentity(normalizedUsers);
 }
 
 function saveUsers() {
@@ -954,20 +997,38 @@ function normalizeCentralUserRecord(record) {
 
 function upsertCentralUser(record) {
   const centralUser = normalizeCentralUserRecord(record);
-  const existingIndex = users.findIndex((user) => {
+  const matchingIndexes = [];
+
+  users.forEach((user, index) => {
     const sameEmail = centralUser.email && normalizeEmail(user.email) === centralUser.email;
     const sameLogin = centralUser.login && normalizeLogin(user.login) === normalizeLogin(centralUser.login);
-    return user.id === centralUser.id || sameEmail || sameLogin;
+
+    if (user.id === centralUser.id || sameEmail || sameLogin) {
+      matchingIndexes.push(index);
+    }
   });
 
-  if (existingIndex >= 0) {
-    users[existingIndex] = normalizeUser({
-      ...users[existingIndex],
+  if (matchingIndexes.length > 0) {
+    const primaryIndex = matchingIndexes[0];
+    const matchingUsers = matchingIndexes.map((index) => users[index]);
+    const primaryUser = matchingUsers[0];
+    const storedPassword = matchingUsers.find((user) => user.senha)?.senha || centralUser.senha;
+    const storedAuthMethods = matchingUsers.flatMap((user) => user.authMethods || []);
+    const mergedUser = normalizeUser({
+      ...primaryUser,
       ...centralUser,
-      senha: users[existingIndex].senha || centralUser.senha,
-      authMethods: uniqueList([...(users[existingIndex].authMethods || []), ...centralUser.authMethods]),
+      id: primaryUser.id,
+      senha: storedPassword,
+      authMethods: uniqueList([...storedAuthMethods, ...centralUser.authMethods]),
     });
-    return users[existingIndex];
+
+    matchingIndexes
+      .slice()
+      .sort((first, second) => second - first)
+      .forEach((index) => users.splice(index, 1));
+    users.splice(primaryIndex, 0, mergedUser);
+
+    return mergedUser;
   }
 
   users.push(centralUser);
@@ -2942,9 +3003,14 @@ async function saveUserConfig(event) {
     return;
   }
 
-  const duplicateLogin = users.some(
-    (user) => user.id !== userId && normalizeLogin(user.login) === normalizeLogin(userConfigLoginInput.value)
-  );
+  const formEmail = normalizeEmail(userConfigEmailInput.value);
+  const formLogin = normalizeLogin(userConfigLoginInput.value);
+  const duplicateLogin = users.some((user) => {
+    const sameUserId = user.id === userId;
+    const sameUserEmail = formEmail && normalizeEmail(user.email) === formEmail;
+
+    return !sameUserId && !sameUserEmail && normalizeLogin(user.login) === formLogin;
+  });
 
   if (duplicateLogin) {
     setUserConfigStatus("Ja existe um usuario com este login.", true);
@@ -3029,7 +3095,7 @@ function isConfigManagedUser(user) {
 }
 
 function pruneUnmanagedConfigUsers() {
-  const managedUsers = users.filter(isConfigManagedUser);
+  const managedUsers = dedupeUsersByIdentity(users.filter(isConfigManagedUser));
 
   if (managedUsers.length === users.length) {
     return;
