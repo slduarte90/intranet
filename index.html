@@ -780,12 +780,12 @@
 
                     <label class="field learning-field" for="user-config-login">
                       <span>Login</span>
-                      <input id="user-config-login" type="text" required />
+                      <input id="user-config-login" type="text" pattern="[A-Za-z0-9._-]+" required />
                     </label>
 
                     <label class="field learning-field" for="user-config-email">
                       <span>E-mail</span>
-                      <input id="user-config-email" type="email" />
+                      <input id="user-config-email" type="email" required />
                     </label>
 
                     <label class="field learning-field" for="user-config-password">
@@ -861,6 +861,6 @@
       </section>
     </main>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="/script.js?v=20260519-user-name-save"></script>
+    <script src="/script.js?v=20260519-user-validation"></script>
   </body>
 </html>

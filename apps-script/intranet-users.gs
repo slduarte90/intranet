@@ -1,6 +1,9 @@
 const SPREADSHEET_ID = "1GFOBNEJa7gHAPkgpdWQ7Xs3p6U2-w8A0ClNSMqlNSKs";
 const ADMIN_EMAILS = ["sidney.duarte@zipcontabilidade.com.br"];
 const DEFAULT_PERMISSIONS = "ferramentas.analisador-extratos,aprendizado.cursos,aprendizado.trilhas,aprendizado.avaliacoes";
+const USER_TYPES = ["administrador", "colaborador"];
+const USER_STATUSES = ["ativo", "inativo"];
+const ZIP_EMAIL_DOMAIN = "zipcontabilidade.com.br";
 
 function doPost(event) {
   try {
@@ -50,7 +53,7 @@ function registerLogin(payload) {
   const savedUser = saveUser({
     email,
     nome: baseUser.nome || usuario.nome || email,
-    login: usuario.login || baseUser.login || email.split("@")[0],
+    login: baseUser.login || usuario.login || email.split("@")[0],
     tipo: isAdmin ? "administrador" : (baseUser.tipo || "colaborador"),
     status: baseUser.status || "ativo",
     permissoes: isAdmin ? "*" : (baseUser.permissoes || usuario.permissoes || DEFAULT_PERMISSIONS),
@@ -89,13 +92,27 @@ function saveUser(usuario) {
   const rowIndex = values.findIndex((row, index) => index > 0 && normalizeEmail(row[0]) === email);
   const baseUser = rowIndex >= 0 ? rowToUser(values[rowIndex]) : {};
   const isAdmin = ADMIN_EMAILS.indexOf(email) >= 0 || usuario.tipo === "administrador" || usuario.permissoes === "*";
+  const nome = String(usuario.nome || baseUser.nome || email).trim();
+  const login = normalizeLogin(usuario.login || baseUser.login || email.split("@")[0]);
+  const tipo = isAdmin ? "administrador" : String(usuario.tipo || baseUser.tipo || "colaborador").trim();
+  const status = String(usuario.status || baseUser.status || "ativo").trim();
+  const permissoes = isAdmin ? "*" : String(usuario.permissoes || baseUser.permissoes || DEFAULT_PERMISSIONS).trim();
+  validateUserFields({
+    email,
+    nome,
+    login,
+    tipo,
+    status,
+    permissoes,
+    allowExternalEmail: login === "teste",
+  });
   const row = [
     email,
-    usuario.nome || baseUser.nome || email,
-    usuario.login || baseUser.login || email.split("@")[0],
-    isAdmin ? "administrador" : (usuario.tipo || baseUser.tipo || "colaborador"),
-    usuario.status || baseUser.status || "ativo",
-    isAdmin ? "*" : (usuario.permissoes || baseUser.permissoes || DEFAULT_PERMISSIONS),
+    nome,
+    login,
+    tipo,
+    status,
+    permissoes,
     usuario.ultimoLogin || baseUser.ultimoLogin || "",
     usuario.primeiroLogin || baseUser.primeiroLogin || "",
     usuario.origem || "configuracao",
@@ -164,6 +181,44 @@ function getSheet(name) {
 
 function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
+}
+
+function normalizeLogin(login) {
+  return String(login || "").trim().toLowerCase();
+}
+
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function validateUserFields(usuario) {
+  if (!usuario.email || !isValidEmail(usuario.email)) {
+    throw new Error("E-mail valido obrigatorio");
+  }
+
+  if (!usuario.allowExternalEmail && usuario.email.split("@")[1] !== ZIP_EMAIL_DOMAIN) {
+    throw new Error("E-mail precisa ser @zipcontabilidade.com.br");
+  }
+
+  if (!usuario.nome || usuario.nome.length < 3) {
+    throw new Error("Nome obrigatorio");
+  }
+
+  if (!usuario.login || !/^[a-z0-9._-]+$/.test(usuario.login)) {
+    throw new Error("Login invalido");
+  }
+
+  if (USER_TYPES.indexOf(usuario.tipo) < 0) {
+    throw new Error("Tipo de usuario invalido");
+  }
+
+  if (USER_STATUSES.indexOf(usuario.status) < 0) {
+    throw new Error("Status invalido");
+  }
+
+  if (!usuario.permissoes) {
+    throw new Error("Permissoes obrigatorias");
+  }
 }
 
 function jsonResponse(payload) {

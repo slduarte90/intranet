@@ -131,6 +131,8 @@ const USER_TYPES = {
   INTERNAL: "interno",
   CLIENT: "cliente",
 };
+const ZIP_EMAIL_DOMAIN = "zipcontabilidade.com.br";
+const LOGIN_PATTERN = /^[a-z0-9._-]+$/;
 
 const LEGACY_USER_TYPE_MAP = {
   [USER_TYPES.INTERNAL]: USER_TYPES.COLLABORATOR,
@@ -2953,8 +2955,107 @@ function setUserConfigStatus(message, isError = false) {
   userConfigStatusMessage.classList.toggle("is-error", isError);
 }
 
+function clearUserConfigFieldValidity() {
+  [
+    userConfigNameInput,
+    userConfigLoginInput,
+    userConfigEmailInput,
+    userConfigPasswordInput,
+    userConfigTypeInput,
+    userConfigStatusInput,
+  ].forEach((field) => {
+    field.setCustomValidity("");
+  });
+}
+
+function setUserConfigFieldError(field, message) {
+  field.setCustomValidity(message);
+  return { field, message };
+}
+
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function validateUserConfigFields({ existingUser, userId, type, selectedModules }) {
+  clearUserConfigFieldValidity();
+
+  const name = userConfigNameInput.value.trim();
+  const login = normalizeLogin(userConfigLoginInput.value);
+  const email = normalizeEmail(userConfigEmailInput.value);
+  const password = userConfigPasswordInput.value;
+  const rawType = userConfigTypeInput.value;
+  const rawStatus = userConfigStatusInput.value;
+  const selectedInvalidModule = selectedModules.find((moduleId) => !MODULE_LABELS[moduleId]);
+  let error = null;
+
+  if (!name) {
+    error = setUserConfigFieldError(userConfigNameInput, "Informe o nome do usuario.");
+  } else if (name.length < 3) {
+    error = setUserConfigFieldError(userConfigNameInput, "Informe um nome com pelo menos 3 caracteres.");
+  } else if (!login) {
+    error = setUserConfigFieldError(userConfigLoginInput, "Informe o login do usuario.");
+  } else if (!LOGIN_PATTERN.test(login)) {
+    error = setUserConfigFieldError(userConfigLoginInput, "Use apenas letras, numeros, ponto, hifen ou underline no login.");
+  } else if (!email) {
+    error = setUserConfigFieldError(userConfigEmailInput, "Informe o e-mail do usuario.");
+  } else if (!isValidEmail(email)) {
+    error = setUserConfigFieldError(userConfigEmailInput, "Informe um e-mail valido.");
+  } else if (!existingUser?.isTestUser && email.split("@")[1] !== ZIP_EMAIL_DOMAIN) {
+    error = setUserConfigFieldError(userConfigEmailInput, "Use um e-mail @zipcontabilidade.com.br.");
+  } else if (![USER_TYPES.ADMIN, USER_TYPES.COLLABORATOR].includes(rawType)) {
+    error = setUserConfigFieldError(userConfigTypeInput, "Selecione uma funcao valida.");
+  } else if (![USER_STATUS.ACTIVE, USER_STATUS.INACTIVE].includes(rawStatus)) {
+    error = setUserConfigFieldError(userConfigStatusInput, "Selecione um status valido.");
+  } else if (password && !isPasswordAllowedForUser(existingUser || {}, password)) {
+    error = setUserConfigFieldError(
+      userConfigPasswordInput,
+      "A senha deve ter 8 caracteres, com maiuscula, minuscula, numero e simbolo."
+    );
+  } else if (selectedInvalidModule) {
+    error = { field: null, message: "Existe um acesso invalido selecionado." };
+  } else if (type === USER_TYPES.COLLABORATOR && selectedModules.length === 0) {
+    error = { field: null, message: "Selecione pelo menos um acesso para o colaborador." };
+  }
+
+  if (!error) {
+    const duplicateEmail = users.some((user) => {
+      const sameUserId = user.id === userId;
+      const sameUserLogin = login && normalizeLogin(user.login) === login;
+
+      return !sameUserId && !sameUserLogin && normalizeEmail(user.email) === email;
+    });
+    const duplicateLogin = users.some((user) => {
+      const sameUserId = user.id === userId;
+      const sameUserEmail = email && normalizeEmail(user.email) === email;
+
+      return !sameUserId && !sameUserEmail && normalizeLogin(user.login) === login;
+    });
+
+    if (duplicateEmail) {
+      error = setUserConfigFieldError(userConfigEmailInput, "Ja existe um usuario com este e-mail.");
+    } else if (duplicateLogin) {
+      error = setUserConfigFieldError(userConfigLoginInput, "Ja existe um usuario com este login.");
+    }
+  }
+
+  if (error) {
+    setUserConfigStatus(error.message, true);
+
+    if (error.field) {
+      error.field.reportValidity();
+      error.field.focus();
+    }
+
+    return false;
+  }
+
+  return true;
+}
+
 function resetUserConfigForm() {
   userConfigForm.reset();
+  clearUserConfigFieldValidity();
   userConfigIdInput.value = "";
   userConfigModalTitle.textContent = "Novo usu\u00e1rio";
   userConfigTypeInput.value = USER_TYPES.COLLABORATOR;
@@ -2967,6 +3068,7 @@ function resetUserConfigForm() {
 }
 
 function fillUserConfigForm(user) {
+  clearUserConfigFieldValidity();
   userConfigIdInput.value = user.id;
   userConfigModalTitle.textContent = "Editar usu\u00e1rio";
   userConfigNameInput.value = user.nomeCompleto;
@@ -3016,22 +3118,7 @@ async function saveUserConfig(event) {
   const type = normalizeUserType(userConfigTypeInput.value);
   const selectedModules = getSelectedUserPermissionModules();
 
-  if (type === USER_TYPES.COLLABORATOR && selectedModules.length === 0) {
-    setUserConfigStatus("Selecione pelo menos um acesso para o colaborador.", true);
-    return;
-  }
-
-  const formEmail = normalizeEmail(userConfigEmailInput.value);
-  const formLogin = normalizeLogin(userConfigLoginInput.value);
-  const duplicateLogin = users.some((user) => {
-    const sameUserId = user.id === userId;
-    const sameUserEmail = formEmail && normalizeEmail(user.email) === formEmail;
-
-    return !sameUserId && !sameUserEmail && normalizeLogin(user.login) === formLogin;
-  });
-
-  if (duplicateLogin) {
-    setUserConfigStatus("Ja existe um usuario com este login.", true);
+  if (!validateUserConfigFields({ existingUser, userId, type, selectedModules })) {
     return;
   }
 
@@ -3996,6 +4083,14 @@ userConfigModal.addEventListener("click", (event) => {
   if (event.target.closest("[data-modal-close]")) {
     closeUserConfigModal();
   }
+});
+userConfigForm.addEventListener("input", () => {
+  clearUserConfigFieldValidity();
+  setUserConfigStatus("");
+});
+userConfigForm.addEventListener("change", () => {
+  clearUserConfigFieldValidity();
+  setUserConfigStatus("");
 });
 window.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !userConfigModal.hidden) {
