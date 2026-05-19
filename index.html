@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=4" />
     <link rel="icon" type="image/png" sizes="512x512" href="/favicon.png?v=4" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=4" />
-    <link rel="stylesheet" href="/styles.css?v=20260518-users-list" />
+    <link rel="stylesheet" href="/styles.css?v=20260518-google-users" />
   </head>
   <body>
     <main class="login-page">
@@ -731,25 +731,13 @@
                     <h2 id="user-config-list-title">Usu&aacute;rios cadastrados</h2>
                   </div>
                   <div class="config-actions">
-                    <button class="learning-secondary-action" id="user-config-import" type="button">
-                      Importar lista
-                    </button>
                     <button class="learning-secondary-action" id="user-config-export" type="button">
                       Exportar lista
                     </button>
-                    <button class="learning-secondary-action" id="user-config-new" type="button">
-                      Novo usu&aacute;rio
-                    </button>
-                    <input
-                      class="sr-only"
-                      id="user-config-import-file"
-                      type="file"
-                      accept="application/json,.json"
-                    />
                   </div>
                 </div>
                 <p class="config-panel__note">
-                  A base central fica no Google Sheets; enquanto a URL do Apps Script n&atilde;o estiver publicada no c&oacute;digo, use importa&ccedil;&atilde;o/exporta&ccedil;&atilde;o para sincronizar manualmente.
+                  Esta lista exibe o usu&aacute;rio de teste e os colaboradores que acessarem pelo Google.
                 </p>
                 <div class="config-user-table">
                   <div class="config-user-table__head" aria-hidden="true">
@@ -873,6 +861,6 @@
       </section>
     </main>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="/script.js?v=20260518-users-list"></script>
+    <script src="/script.js?v=20260519-central-users"></script>
   </body>
 </html>

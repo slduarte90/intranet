@@ -17,3 +17,9 @@ https://docs.google.com/spreadsheets/d/1GFOBNEJa7gHAPkgpdWQ7Xs3p6U2-w8A0ClNSMqlN
 9. No `script.js`, preencha `CENTRAL_USERS_API_URL` com essa URL.
 
 Depois disso, cada login envia nome/e-mail para a planilha e a tela Configurações > Usuários lê a base central.
+
+## Implantação atual
+
+URL do Web App:
+
+https://script.google.com/macros/s/AKfycbzeiRL72RqV9KQbB-MfnZJr7G7RgVEz_6o01ej2EctsEgEgwzWvaNGJgaU6RVQG-zDZKw/exec

@@ -228,7 +228,8 @@ const HOME_UPDATES_PER_PAGE = 5;
 const ADMIN_EMAILS = ["sidney.duarte@zipcontabilidade.com.br"];
 const CENTRAL_USERS_SPREADSHEET_URL =
   "https://docs.google.com/spreadsheets/d/1GFOBNEJa7gHAPkgpdWQ7Xs3p6U2-w8A0ClNSMqlNSKs/edit";
-const CENTRAL_USERS_API_URL = "";
+const CENTRAL_USERS_API_URL =
+  "https://script.google.com/macros/s/AKfycbzeiRL72RqV9KQbB-MfnZJr7G7RgVEz_6o01ej2EctsEgEgwzWvaNGJgaU6RVQG-zDZKw/exec";
 
 // Preencha com o Client ID web do Google Cloud para ativar o login real.
 const googleClientId = "403916379779-9ioro1su7nq24uip6l8fadjv77vomn1b.apps.googleusercontent.com";
@@ -3019,10 +3020,29 @@ function createUserConfigCard(user) {
   return card;
 }
 
+function isConfigManagedUser(user) {
+  if (user.isTestUser) {
+    return true;
+  }
+
+  return Boolean(normalizeEmail(user.email) && hasAuthMethod(user, AUTH_METHODS.GOOGLE));
+}
+
+function pruneUnmanagedConfigUsers() {
+  const managedUsers = users.filter(isConfigManagedUser);
+
+  if (managedUsers.length === users.length) {
+    return;
+  }
+
+  users.splice(0, users.length, ...managedUsers);
+  saveUsers();
+}
+
 function getConfigUsers() {
   const usersByIdentity = new Map();
 
-  users.forEach((user) => {
+  users.filter(isConfigManagedUser).forEach((user) => {
     const identityKey = normalizeEmail(user.email) || normalizeLogin(user.login) || user.id;
     const currentUserForIdentity = usersByIdentity.get(identityKey);
 
@@ -3110,8 +3130,7 @@ async function importUsersDirectory(file) {
   }
 }
 
-async function renderUsersConfig() {
-  await syncCentralUsersDirectory();
+function renderConfigUsersList() {
   clearElement(configUserList);
 
   getConfigUsers()
@@ -3120,6 +3139,15 @@ async function renderUsersConfig() {
     .forEach((user) => {
       configUserList.appendChild(createUserConfigCard(user));
     });
+}
+
+async function renderUsersConfig() {
+  pruneUnmanagedConfigUsers();
+  renderConfigUsersList();
+
+  await syncCentralUsersDirectory();
+  pruneUnmanagedConfigUsers();
+  renderConfigUsersList();
 }
 
 function renderAuthenticatedApp(user, options = {}) {
@@ -3866,12 +3894,18 @@ learningAssessmentForm.addEventListener("input", () => {
 homeUpdatesPrevButton.addEventListener("click", () => goToHomeUpdatesPage(-1));
 homeUpdatesNextButton.addEventListener("click", () => goToHomeUpdatesPage(1));
 userConfigForm.addEventListener("submit", saveUserConfig);
-userConfigNewButton.addEventListener("click", () => openUserConfigModal());
-userConfigExportButton.addEventListener("click", exportUsersDirectory);
-userConfigImportButton.addEventListener("click", () => userConfigImportFile.click());
-userConfigImportFile.addEventListener("change", () => {
-  importUsersDirectory(userConfigImportFile.files[0]);
-});
+if (userConfigNewButton) {
+  userConfigNewButton.addEventListener("click", () => openUserConfigModal());
+}
+if (userConfigExportButton) {
+  userConfigExportButton.addEventListener("click", exportUsersDirectory);
+}
+if (userConfigImportButton && userConfigImportFile) {
+  userConfigImportButton.addEventListener("click", () => userConfigImportFile.click());
+  userConfigImportFile.addEventListener("change", () => {
+    importUsersDirectory(userConfigImportFile.files[0]);
+  });
+}
 userConfigResetButton.addEventListener("click", resetUserConfigForm);
 userConfigCloseButton.addEventListener("click", closeUserConfigModal);
 userConfigModal.addEventListener("click", (event) => {
