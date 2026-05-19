@@ -1041,15 +1041,28 @@ async function syncCentralLogin(user, authMethod) {
   }
 
   try {
+    await syncCentralUsersDirectory();
+
+    const centralKnownUser = users.find(
+      (item) => user.email && normalizeEmail(item.email) === normalizeEmail(user.email)
+    );
+    const userForSync = centralKnownUser
+      ? {
+          ...user,
+          ...centralKnownUser,
+          googleSub: user.googleSub || centralKnownUser.googleSub || "",
+        }
+      : user;
+
     const result = await callCentralUsersApi("registerLogin", {
       usuario: {
-        email: user.email,
-        nome: user.nomeCompleto || user.login,
-        login: user.login,
-        tipo: user.tipo,
-        status: user.status,
-        permissoes: permissionStringFromUser(user),
-        googleSub: user.googleSub || "",
+        email: userForSync.email,
+        nome: userForSync.nomeCompleto || userForSync.login,
+        login: userForSync.login,
+        tipo: userForSync.tipo,
+        status: userForSync.status,
+        permissoes: permissionStringFromUser(userForSync),
+        googleSub: userForSync.googleSub || "",
       },
       origem: authMethod,
       userAgent: window.navigator.userAgent,
@@ -1088,7 +1101,7 @@ async function saveCentralUser(user) {
     return;
   }
 
-  await callCentralUsersApi("saveUser", {
+  const result = await callCentralUsersApi("saveUser", {
     usuario: {
       email: user.email,
       nome: user.nomeCompleto || user.login,
@@ -1100,6 +1113,11 @@ async function saveCentralUser(user) {
       observacoes: user.isTestUser ? "Usuario de teste local" : "",
     },
   });
+
+  if (result && result.usuario) {
+    upsertCentralUser(result.usuario);
+    saveUsers();
+  }
 }
 
 function getClientById(clientId) {
@@ -3053,7 +3071,7 @@ async function saveUserConfig(event) {
     return;
   }
 
-  renderUsersConfig();
+  await renderUsersConfig();
   closeUserConfigModal();
 }
 

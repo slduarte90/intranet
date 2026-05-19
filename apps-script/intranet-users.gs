@@ -49,7 +49,7 @@ function registerLogin(payload) {
   const isAdmin = ADMIN_EMAILS.indexOf(email) >= 0 || baseUser.tipo === "administrador";
   const savedUser = saveUser({
     email,
-    nome: usuario.nome || baseUser.nome || email,
+    nome: baseUser.nome || usuario.nome || email,
     login: usuario.login || baseUser.login || email.split("@")[0],
     tipo: isAdmin ? "administrador" : (baseUser.tipo || "colaborador"),
     status: baseUser.status || "ativo",
@@ -87,20 +87,21 @@ function saveUser(usuario) {
   const sheet = getSheet("Usuarios");
   const values = sheet.getDataRange().getValues();
   const rowIndex = values.findIndex((row, index) => index > 0 && normalizeEmail(row[0]) === email);
+  const baseUser = rowIndex >= 0 ? rowToUser(values[rowIndex]) : {};
   const isAdmin = ADMIN_EMAILS.indexOf(email) >= 0 || usuario.tipo === "administrador" || usuario.permissoes === "*";
   const row = [
     email,
-    usuario.nome || email,
-    usuario.login || email.split("@")[0],
-    isAdmin ? "administrador" : (usuario.tipo || "colaborador"),
-    usuario.status || "ativo",
-    isAdmin ? "*" : (usuario.permissoes || DEFAULT_PERMISSIONS),
-    usuario.ultimoLogin || "",
-    usuario.primeiroLogin || "",
+    usuario.nome || baseUser.nome || email,
+    usuario.login || baseUser.login || email.split("@")[0],
+    isAdmin ? "administrador" : (usuario.tipo || baseUser.tipo || "colaborador"),
+    usuario.status || baseUser.status || "ativo",
+    isAdmin ? "*" : (usuario.permissoes || baseUser.permissoes || DEFAULT_PERMISSIONS),
+    usuario.ultimoLogin || baseUser.ultimoLogin || "",
+    usuario.primeiroLogin || baseUser.primeiroLogin || "",
     usuario.origem || "configuracao",
-    usuario.googleSub || "",
+    usuario.googleSub || baseUser.googleSub || "",
     usuario.atualizadoEm || now,
-    usuario.observacoes || "",
+    usuario.observacoes || baseUser.observacoes || "",
   ];
 
   if (rowIndex >= 0) {
