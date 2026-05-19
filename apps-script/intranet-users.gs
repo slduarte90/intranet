@@ -1,6 +1,6 @@
 const SPREADSHEET_ID = "1GFOBNEJa7gHAPkgpdWQ7Xs3p6U2-w8A0ClNSMqlNSKs";
 const ADMIN_EMAILS = ["sidney.duarte@zipcontabilidade.com.br"];
-const DEFAULT_PERMISSIONS = "ferramentas.analisador-extratos,aprendizado.cursos,aprendizado.trilhas,aprendizado.avaliacoes";
+const DEFAULT_PERMISSIONS = "ferramentas.analisador-extratos,aprendizado.cursos,aprendizado.trilhas";
 const USER_TYPES = ["administrador", "colaborador"];
 const USER_STATUSES = ["ativo", "inativo"];
 const ZIP_EMAIL_DOMAIN = "zipcontabilidade.com.br";

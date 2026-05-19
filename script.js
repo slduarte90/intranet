@@ -307,11 +307,6 @@ const defaultPermissionProfiles = [
         moduloId: "aprendizado.trilhas",
         acoes: [ACTIONS.VIEW],
       },
-      {
-        clienteId: "*",
-        moduloId: "aprendizado.avaliacoes",
-        acoes: [ACTIONS.VIEW],
-      },
     ],
   },
   {
@@ -1347,7 +1342,6 @@ function createInternalGoogleUser(profile, hostedDomain) {
           "ferramentas.analisador-extratos",
           "aprendizado.cursos",
           "aprendizado.trilhas",
-          "aprendizado.avaliacoes",
         ],
     perfilId: isConfiguredAdminEmail(googleEmail) ? "admin_zip" : "colaborador_zip",
     authMethods: [AUTH_METHODS.GOOGLE],
@@ -3061,7 +3055,7 @@ function resetUserConfigForm() {
   userConfigTypeInput.value = USER_TYPES.COLLABORATOR;
   userConfigStatusInput.value = USER_STATUS.ACTIVE;
   userConfigPermissionInputs.forEach((input) => {
-    input.checked = ["ferramentas.analisador-extratos", "aprendizado.cursos", "aprendizado.trilhas", "aprendizado.avaliacoes"].includes(input.value);
+    input.checked = ["ferramentas.analisador-extratos", "aprendizado.cursos", "aprendizado.trilhas"].includes(input.value);
   });
   userConfigLoginInput.disabled = false;
   setUserConfigStatus("");
