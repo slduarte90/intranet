@@ -235,6 +235,7 @@ const CENTRAL_USERS_API_URL =
 
 // Preencha com o Client ID web do Google Cloud para ativar o login real.
 const googleClientId = "403916379779-9ioro1su7nq24uip6l8fadjv77vomn1b.apps.googleusercontent.com";
+const extractToolPath = "/extract/index.html?v=20260521-2672548";
 
 const defaultClients = [
   {
@@ -374,7 +375,7 @@ const defaultTools = [
     nome: "Analisador de Extratos",
     descricao: "Analise, categorizacao e exportacao de extratos bancarios.",
     url: "",
-    internalPath: "extract/index.html",
+    internalPath: extractToolPath,
     moduloId: "ferramentas.analisador-extratos",
     status: USER_STATUS.ACTIVE,
     abrirNovaAba: false,
@@ -592,7 +593,7 @@ function normalizeTool(tool) {
     nome: tool.nome || "",
     descricao: tool.descricao || "",
     url: isInternalExtractTool ? "" : tool.url || "",
-    internalPath: isInternalExtractTool ? "/extract/index.html" : tool.internalPath || "",
+    internalPath: isInternalExtractTool ? extractToolPath : tool.internalPath || "",
     moduloId: tool.moduloId || "",
     status: tool.status || USER_STATUS.ACTIVE,
     abrirNovaAba: !isInternalExtractTool && Boolean(tool.url) && tool.abrirNovaAba !== false,
